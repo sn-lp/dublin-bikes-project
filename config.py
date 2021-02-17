@@ -1,0 +1,2 @@
+class Config:
+    JCDECAUX_API_KEY = 'f5054ee21f6422a00c8247b74b556f10799ce4d4'

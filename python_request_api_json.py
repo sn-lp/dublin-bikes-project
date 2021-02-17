@@ -1,8 +1,12 @@
 # pip or pip3 install requests first
 import requests
+from config import Config
+
+devConfig = Config()
+API_KEY = devConfig.JCDECAUX_API_KEY
 
 # get all stations in dublin 
-r = requests.get('https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey=f5054ee21f6422a00c8247b74b556f10799ce4d4')
+r = requests.get(f'https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey={API_KEY}')
 if r.status_code == requests.codes.ok:
     stations_json = r.json()
     
