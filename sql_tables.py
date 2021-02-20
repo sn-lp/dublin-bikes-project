@@ -22,6 +22,10 @@ class Stations(Base):
 class Availability(Base):
     __tablename__ = "availability"
     stationId = Column(Integer, ForeignKey(Stations.stationId), primary_key = True)
+    '''
+    we are including totalStands in here and not in 'Stations' since in the API it belongs to "Dynamic Data" 
+    and there's the possibility the number might change --> a stand added or removed
+    '''
     totalStands = Column(Integer, nullable = False)
     availableBikes = Column(Integer, nullable = False)
     freeStands = Column(Integer, nullable = False)
