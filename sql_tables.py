@@ -10,7 +10,8 @@ Base = declarative_base()
 
 class Stations(Base):
     __tablename__ = "stations"
-    stationId = Column(Integer, autoincrement = True, primary_key = True)
+    # stationId is station['number'] returned by the API after checking that there are no duplicates for contract=Dublin
+    stationId = Column(Integer, primary_key = True)
     name = Column(String(100), nullable = False)
     address = Column(String(100), nullable = False)
     latitude = Column(Float, nullable = False)
