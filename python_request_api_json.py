@@ -8,28 +8,28 @@ from config import Config
 devConfig = Config()
 API_KEY = devConfig.JCDECAUX_API_KEY
 
+# initialise list
+data_list = []
+
 while True:
     try:
-        # get all stations in dublin
-        r = requests.get(f'https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey={API_KEY}')
+        # get all stations in dublin and save as json file
+        r = requests.get(f'https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey={API_KEY}').json()
 
-        # check status code
-        if r.status_code == requests.codes.ok:
-            stations_json = r.json()
+        # append request to json file
+        data_list.append(r)
 
-            # stations_json is a list with dictionaires
-            for station in stations_json:
-                print("Station name: " + station['name'] + ", Available bikes: " + str(station['available_bikes']) + "\n")
+        # open destination file and write data object to outfile
+        with open("data.json", "w") as outfile:
+            json.dump(data_list, outfile)
 
-            #with open('stations.json', 'w') as write_file:
-                #json.dump(r, write_file)
+        # TODO store data.json on S3
 
-            # store data in database
-            # save_to_db(r)
-
-            # sleep for 5 minutes
-            time.sleep(5 * 60)
+        # sleep for 5 minutes
+        time.sleep(5 * 60)
 
     except:
         # if there is any problem, print the traceback
-        print (traceback.format_exc())
+        print(traceback.format_exc())
+
+
