@@ -4,6 +4,11 @@ import time
 import requests
 import json
 from config import Config
+import boto3
+import json
+import datetime
+
+s3 = boto3.client('s3')
 
 devConfig = Config()
 API_KEY = devConfig.JCDECAUX_API_KEY
@@ -17,18 +22,19 @@ while True:
         if r.status_code == requests.codes.ok:
             stations_json = r.json()
 
-            # stations_json is a list with dictionaires
-            for station in stations_json:
-                print("Station name: " + station['name'] + ", Available bikes: " + str(station['available_bikes']) + "\n")
-
-            #with open('stations.json', 'w') as write_file:
-                #json.dump(r, write_file)
-
-            # store data in database
-            # save_to_db(r)
+        # store json on S3
+        s3.put_object(
+            Body=json.dumps(r),
+            Bucket='dublin-bikes-data',
+            Key=f'dublin-bikes-{datetime.datetime.now()}.json'
+        )
 
             # sleep for 5 minutes
             time.sleep(5 * 60)
+
+    # boto3 exceptions
+    except Exceptions as e:
+        print ("Exception ", e)
 
     except:
         # if there is any problem, print the traceback
