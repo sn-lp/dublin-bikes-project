@@ -4,29 +4,34 @@ import time
 import requests
 import json
 from config import Config
+import boto3
+import json
+import datetime
+
+s3 = boto3.client('s3')
 
 devConfig = Config()
 API_KEY = devConfig.JCDECAUX_API_KEY
 
-# initialise list
-data_list = []
 
 while True:
     try:
         # get all stations in dublin and save as json file
         r = requests.get(f'https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey={API_KEY}').json()
 
-        # append request to json file
-        data_list.append(r)
-
-        # open destination file and write data object to outfile
-        with open("data.json", "w") as outfile:
-            json.dump(data_list, outfile)
-
-        # TODO store data.json on S3
+        # store json on S3
+        s3.put_object(
+            Body=json.dumps(r),
+            Bucket='dublin-bikes-data',
+            Key=f'dublin-bikes-{datetime.datetime.now()}.json'
+        )
 
         # sleep for 5 minutes
         time.sleep(5 * 60)
+
+    # boto3 exceptions
+    except Exceptions as e:
+        print ("Exception ", e)
 
     except:
         # if there is any problem, print the traceback
