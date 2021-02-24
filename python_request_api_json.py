@@ -15,11 +15,7 @@ S3_BUCKET = devConfig.S3_BUCKET
 while True:
     try:
         # get all stations in dublin
-        r = requests.get(f'https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey={API_KEY}')
-
-        # check status code
-        if r.status_code == requests.codes.ok:
-            stations_json = r.json()
+        r = requests.get(f'https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey={API_KEY}').json()
 
         # store json on S3
         s3.put_object(
@@ -28,8 +24,8 @@ while True:
             Key=f'dublin-bikes-{datetime.datetime.now()}.json'
         )
 
-            # sleep for 5 minutes
-            time.sleep(5 * 60)
+        # sleep for 5 minutes
+        time.sleep(5 * 60)
 
     # boto3 exceptions
     except Exception as e:
