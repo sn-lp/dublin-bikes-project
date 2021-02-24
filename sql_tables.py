@@ -34,7 +34,7 @@ class StationUpdates(Base):
     historical weather data to train our ML model to predict availability based on weather will be relative to a position (i.e. a station's position)
     at a certain time (i.e. the timestamp in lastUpdate)
     '''
-    # mainWeather stores what's returned by the API from 'current.weather.main' which returns the main weather condition (e.g. 'Rain', 'Drizzle', 'Thunderstorm', etc.)
+    # the units are noted in the README file
     mainWeather = Column(String(32), nullable = False)
     temperature = Column(Float, nullable = False)
     cloudiness = Column(Float, nullable = False)
