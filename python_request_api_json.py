@@ -2,16 +2,17 @@
 import traceback
 import time
 import requests
-import json
-from config import Config
 import boto3
 import json
 import datetime
+from config import Config
+
 
 s3 = boto3.client('s3')
 
 devConfig = Config()
 API_KEY = devConfig.JCDECAUX_API_KEY
+S3_BUCKET = devConfig.S3_BUCKET
 
 while True:
     try:
@@ -25,7 +26,7 @@ while True:
         # store json on S3
         s3.put_object(
             Body=json.dumps(r),
-            Bucket='dublin-bikes-data',
+            Bucket=S3_BUCKET,
             Key=f'dublin-bikes-{datetime.datetime.now()}.json'
         )
 
@@ -35,7 +36,3 @@ while True:
     # boto3 exceptions
     except Exceptions as e:
         print ("Exception ", e)
-
-    except:
-        # if there is any problem, print the traceback
-        print (traceback.format_exc())
