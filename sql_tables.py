@@ -19,8 +19,8 @@ class Stations(Base):
     banking = Column(Boolean, nullable = False)
     isOpen = Column(Boolean, nullable = False)
 
-class Availability(Base):
-    __tablename__ = "availability"
+class StationUpdates(Base):
+    __tablename__ = "station_updates"
     stationId = Column(Integer, ForeignKey(Stations.stationId), primary_key = True)
     '''
     we are including totalStands in here and not in 'Stations' since in the API it belongs to "Dynamic Data" 
@@ -30,3 +30,15 @@ class Availability(Base):
     availableBikes = Column(Integer, nullable = False)
     freeStands = Column(Integer, nullable = False)
     lastUpdate = Column(TIMESTAMP, nullable = False, primary_key = True)
+    '''
+    historical weather data to train our ML model to predict availability based on weather will be relative to a position (i.e. a station's position)
+    at a certain time (i.e. the timestamp in lastUpdate)
+    '''
+    # mainWeather stores what's returned by the API from 'current.weather.main' which returns the main weather condition (e.g. 'Rain', 'Drizzle', 'Thunderstorm', etc.)
+    mainWeather = Column(String(32), nullable = False)
+    temperature = Column(Float, nullable = False)
+    cloudiness = Column(Float, nullable = False)
+    windSpeed = Column(Float, nullable = False)
+    # rain and snow columns are set to accept NULL values to prevent errors because in the API this data is only returned "where available"
+    rain = Column(Float)
+    snow = Column(Float)
