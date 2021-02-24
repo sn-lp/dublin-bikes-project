@@ -1,5 +1,3 @@
-# pip or pip3 install requests first
-import traceback
 import time
 import requests
 import boto3
@@ -34,5 +32,5 @@ while True:
             time.sleep(5 * 60)
 
     # boto3 exceptions
-    except Exceptions as e:
+    except Exception as e:
         print ("Exception ", e)
