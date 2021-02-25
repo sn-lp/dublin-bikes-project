@@ -8,6 +8,7 @@ DB_USER = devConfig.DB_USER
 DB_PASSWORD = devConfig.DB_PASSWORD
 DB_SERVER = devConfig.DB_SERVER
 DB_PORT = devConfig.DB_PORT
+DB_NAME = devConfig.DB_NAME
 
 # connect to rds database
 url = 'mysql+mysqlconnector://{}:{}@{}:{}'.format(DB_USER, DB_PASSWORD, DB_SERVER, DB_PORT)
