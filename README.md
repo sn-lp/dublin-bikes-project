@@ -43,3 +43,8 @@ To get the temperature in Celsius we need to change the 'units' parameter when c
 e.g.:
 http://api.openweathermap.org/data/2.5/onecall?lat={latitude}&lon={longitude}&units=metric
 
+### Running the web application
+To start the web application run:
+```python
+python application.py
+```
