@@ -26,9 +26,10 @@ json_folder = "dublin-bikes-and-weather-data-json"
 
 # connect to rds database
 url = 'mysql+mysqlconnector://{}:{}@{}:{}/{}'.format(DB_USER, DB_PASSWORD, DB_SERVER, DB_PORT, DB_NAME)
-engine = create_engine(url, echo=True)
+engine = create_engine(url, echo=False)
 
-# TODO comment here
+# https://www.pythoncentral.io/understanding-python-sqlalchemy-session/
+# session allows communication between this program and the database in python
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -64,12 +65,13 @@ def create_station_row_in_db(station):
                                 longitude = station['position']['lng'], 
                                 banking = station['banking'], 
                                 isOpen = isOpen)
-    session.add(new_station)
+    
     try:
+        session.add(new_station)
         session.commit()
         logging.info("Success: new station added to STATIONS table")
     except SQLAlchemyError as e:
-        logging.error(f"Failed to create new row in STATIONS table with error: {e}")    
+        logging.error(f"Failed to add station {new_station.__dict__} to the STATIONS table with error: {e}")    
 
 def create_station_update_row_in_db(station, weather_data, last_update_datetime):
     if not 'current' in weather_data:
@@ -95,12 +97,13 @@ def create_station_update_row_in_db(station, weather_data, last_update_datetime)
                                             windSpeed = weather_data['current']['wind_speed'],
                                             rain = rain,
                                             snow = snow)
-    session.add(new_station_update)
+    
     try:
+        session.add(new_station_update)
         session.commit()
         logging.info("Success: new station update added to STATION_UPDATES table")
     except SQLAlchemyError as e:
-        logging.error(f"Failed to create new row in STATION_UPDATES table with error: {e}")
+        logging.error(f"Failed to add update for station {new_station_update.__dict__} to the STATION_UPDATES table with error: {e}")
 
 while True:
     try:
@@ -111,7 +114,8 @@ while True:
         if not stations_json:
             # sleep for 10 seconds before requesting to api again (api could be down)
             time.sleep(10)
-            continue
+            # go back to the try and call the api again
+            continue 
         
         # create folder to store the api responses
         json_folder_exist = False
@@ -157,6 +161,7 @@ while True:
                 if not weather_data:
                     # sleep for 10 seconds before requesting to api again (api could be down)
                     time.sleep(10)
+                    # go back to the try and call the api again
                     continue
                 
                 # write weather api json response to a file named weather-'stationID'-'number of the station'-'datetime_requested'.json
