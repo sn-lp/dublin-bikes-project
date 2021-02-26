@@ -1,32 +1,178 @@
 import time
 import requests
 import json
-import datetime
 from config import Config
+from sql_tables import Stations, StationUpdates
+from sqlalchemy import insert, create_engine
+from sqlalchemy.orm import sessionmaker
+from datetime import datetime
+import math
 import logging
+import os
+from sqlalchemy.exc import SQLAlchemyError
 
 logging.basicConfig(level=logging.INFO)
 
 devConfig = Config()
-API_KEY = devConfig.JCDECAUX_API_KEY
+BIKES_API_KEY = devConfig.JCDECAUX_API_KEY
+WEATHER_API_KEY = devConfig.OPENWEATHER_API_KEY
+DB_USER = devConfig.DB_USER
+DB_PASSWORD = devConfig.DB_PASSWORD
+DB_SERVER = devConfig.DB_SERVER
+DB_PORT = devConfig.DB_PORT
+DB_NAME = devConfig.DB_NAME
+
+json_folder = "dublin-bikes-and-weather-data-json"
+
+# connect to rds database
+url = 'mysql+mysqlconnector://{}:{}@{}:{}/{}'.format(DB_USER, DB_PASSWORD, DB_SERVER, DB_PORT, DB_NAME)
+engine = create_engine(url, echo=True)
+
+# TODO comment here
+Session = sessionmaker(bind=engine)
+session = Session()
+
+def call_bikes_api():
+    bikes_api_response = requests.get(f'https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey={BIKES_API_KEY}')
+    if bikes_api_response.status_code == 200:
+        logging.info(f"Request to JCDecaux API succeeded with status code 200")
+        return bikes_api_response.json()
+    else:
+        logging.error(f"Request to JCDecaux API failed with {bikes_api_response.status_code}: {bikes_api_response.reason}")
+        return None
+
+def call_weather_api(latitude, longitude, timestamp):
+    weather_api_response = requests.get(f'https://api.openweathermap.org/data/2.5/onecall/timemachine?lat={latitude}&lon={longitude}&dt={timestamp}&units=metric&appid={WEATHER_API_KEY}')
+    if weather_api_response.status_code == 200:
+        logging.info(f"Request to OPENWEATHER API succeeded with status code 200")
+        return weather_api_response.json()
+    else:
+        logging.error(f"Request to OPENWEATHER API failed with {weather_api_response.status_code}: {weather_api_response.reason}")
+        return None
+
+def create_station_row_in_db(station):
+    # convert the station "status" returned into a boolean to fit the data type of column isOpen
+    if station['status'] == "OPEN":
+        isOpen = True
+    else:
+        isOpen = False
+    # create new instance of Stations
+    new_station = Stations(stationId = station['number'], 
+                                name = station['name'], 
+                                address = station['address'], 
+                                latitude = station['position']['lat'], 
+                                longitude = station['position']['lng'], 
+                                banking = station['banking'], 
+                                isOpen = isOpen)
+    session.add(new_station)
+    try:
+        session.commit()
+        logging.info("Success: new station added to STATIONS table")
+    except SQLAlchemyError as e:
+        logging.error(f"Failed to create new row in STATIONS table with error: {e}")    
+
+def create_station_update_row_in_db(station, weather_data, last_update_datetime):
+    if not 'current' in weather_data:
+        logging.error("OPENWEATHER API did not return expected data.")
+        return
+    if not 'rain' in weather_data['current']:
+        rain = 0
+    else:
+        rain = weather_data['current']['rain']
+    if not 'snow' in weather_data['current']:
+        snow = 0
+    else:
+        snow = weather_data['current']['snow']
+
+    new_station_update = StationUpdates(stationId = station['number'],
+                                            totalStands = station['bike_stands'],
+                                            availableBikes = station['available_bikes'],
+                                            freeStands = station['available_bike_stands'],
+                                            lastUpdate = last_update_datetime,
+                                            mainWeather = weather_data['current']['weather'][0]['main'],
+                                            temperature = weather_data['current']['temp'],
+                                            cloudiness = weather_data['current']['clouds'],
+                                            windSpeed = weather_data['current']['wind_speed'],
+                                            rain = rain,
+                                            snow = snow)
+    session.add(new_station_update)
+    try:
+        session.commit()
+        logging.info("Success: new station update added to STATION_UPDATES table")
+    except SQLAlchemyError as e:
+        logging.error(f"Failed to create new row in STATION_UPDATES table with error: {e}")
 
 while True:
     try:
-        # make a request to JCDecaux API
-        response = requests.get(f'https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey={API_KEY}')
+        # get all stations in dublin
+        stations_json = call_bikes_api()
 
-        if response.status_code == 200:
-            logging.info(f"Request to JCDecaux API succeeded with status code 200")
-
-            with open(f'dublin-bikes-json/dublin-bikes-{datetime.datetime.now()}.json', 'w') as outfile:
-                logging.info(f"Writing output to dublin-bikes-{datetime.datetime.now()}.json")
-                json.dump(response.json(), outfile)
-
+        # if status_code != 200 do
+        if not stations_json:
+            # sleep for 10 seconds before requesting to api again (api could be down)
+            time.sleep(10)
+            continue
+        
+        # create folder to store the api responses
+        json_folder_exist = False
+        if not os.path.exists(json_folder):
+            try:
+                os.mkdir(json_folder)
+                json_folder_exist = True
+            except Exception as e:
+                logging.error(e)
         else:
-            logging.error(f"Request to JCDecaux API failed with {response.status_code}: {response.reason}")
+            json_folder_exist = True
+        
+        # write bikes api json response to a file
+        if json_folder_exist:
+            with open(f'{json_folder}/dublin-bikes-{datetime.now()}.json', 'w') as outfile:
+                logging.info(f"Writing bikes output to dublin-bikes-{datetime.now()}.json")
+                json.dump(stations_json, outfile)
+
+        for station in stations_json:
+            # check if the station already exists in the database
+            station_row_exist = session.query(Stations).get(station['number'])
+            if not station_row_exist:
+                # insert station in Stations
+                create_station_row_in_db(station)
+            
+            # last_update timestamp returned by Jcdecaux api is in miliseconds and is a float and openweather api receives timestamp in seconds and int
+            # convert station['last_update'] to seconds and int
+            last_update_timestamp_seconds = math.floor(station['last_update'] / 1000)
+
+            # to store the unix timestamp in our database, mysql requires it in datetime format
+            last_update_datetime = datetime.fromtimestamp(last_update_timestamp_seconds)
+
+            # check if the station's last update is already in the database
+            update_row_exist = session.query(StationUpdates).get((station['number'], last_update_datetime))
+            if not update_row_exist:
+                station_latitude = station['position']['lat']
+                station_longitude = station['position']['lng']
+
+                # to call the api we need to use unix timestamp in seconds (which we get from the jcdecaux api response)
+                weather_data = call_weather_api(station_latitude, station_longitude,last_update_timestamp_seconds)
+
+                # if status_code != 200 do
+                if not weather_data:
+                    # sleep for 10 seconds before requesting to api again (api could be down)
+                    time.sleep(10)
+                    continue
+                
+                # write weather api json response to a file named weather-'stationID'-'number of the station'-'datetime_requested'.json
+                # changed from using datetime.now() to last_update_datetime because they will be different and will be easier to match the data with the last_update from jcdecaux response
+                if json_folder_exist:
+                    with open(f"{json_folder}/weather-stationID-{station['number']}-{last_update_datetime}.json", 'w') as outfile:
+                        logging.info(f"Writing weather output to weather-stationID-{station['number']}-{last_update_datetime}.json")
+                        json.dump(weather_data, outfile)
+
+                # insert station availability and weather updates in station_updates table
+                create_station_update_row_in_db(station, weather_data, last_update_datetime)
+
 
         # sleep for 5 minutes
         time.sleep(5 * 60)
+        logging.info("I will sleep for 5 minutes.")
 
     except Exception as e:
         logging.error(e)
