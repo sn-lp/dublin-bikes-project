@@ -4,3 +4,4 @@ __pycache__
 *.log
 config.py
 dublin-bikes-and-weather-data-json
+.DS_Store
