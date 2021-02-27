@@ -176,8 +176,9 @@ while True:
 
 
         # sleep for 5 minutes
-        time.sleep(5 * 60)
         logging.info("I will sleep for 5 minutes.")
+        time.sleep(5 * 60)
+        logging.info("I will restart.")
 
     except Exception as e:
         logging.error(e)
