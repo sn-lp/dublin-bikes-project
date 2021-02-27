@@ -43,8 +43,24 @@ To get the temperature in Celsius we need to change the 'units' parameter when c
 e.g.:
 http://api.openweathermap.org/data/2.5/onecall?lat={latitude}&lon={longitude}&units=metric
 
+## Running the application
+### Creating the conda environment
+To run the web application and scraping script, we recommend creating a ``conda`` environment with the dependencies in ``requirements.txt``:
+```bash
+$ conda env -n comp30830 python=3.8
+$ conda activate comp30830
+$ pip install -r requirements.txt
+```
+
+### Running the scraping script
+To run the scraping script in the background use the following command:
+```bash
+$ nohup python python_request_api_json.py &> scraping_run.log &
+```
+Any logging information and error messages will be available in ``scraping_run.log``
+
 ### Running the web application
 To start the web application run:
-```python
-python application.py
+```bash
+$ python application.py
 ```
