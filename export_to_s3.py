@@ -8,9 +8,9 @@ devConfig = Config()
 S3_BUCKET = devConfig.S3_BUCKET
 
 # Take all the files in dublin-bikes-json folder and push them to S3
-for filename in os.listdir('dublin-bikes-json'):
+for filename in os.listdir('dublin-bikes-and-weather-data-json'):
     s3.upload_file(
-        Filename=f'dublin-bikes-json/{filename}',
+        Filename=f'dublin-bikes-and-weather-data-json/{filename}',
         Bucket=S3_BUCKET,
         Key=filename
     )
