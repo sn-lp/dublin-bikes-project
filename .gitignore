@@ -5,3 +5,4 @@ __pycache__
 config.py
 dublin-bikes-and-weather-data-json
 .DS_Store
+*.swp

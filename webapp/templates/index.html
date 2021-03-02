@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Dublin Bikes App</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
+    <script>
+      let map;
+
+      function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 53.3498, lng: -6.2603 },
+          zoom: 12,
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="header"><h1>Group 5 Dublin Bikes App</h1></div>
+    <div id="map"></div>
+
+    <!-- Async script executes immediately and must be after any DOM elements used in callback. -->
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrzloaJPiuP3QvxoeLVdLyWZsh7oTAXm4&callback=initMap&libraries=&v=weekly"
+      async
+    ></script>
+  </body>
+</html>
