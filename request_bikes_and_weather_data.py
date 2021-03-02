@@ -42,8 +42,9 @@ def call_bikes_api():
         logging.error(f"Request to JCDecaux API failed with {bikes_api_response.status_code}: {bikes_api_response.reason}")
         return None
 
-def call_weather_api(latitude, longitude, timestamp):
-    weather_api_response = requests.get(f'https://api.openweathermap.org/data/2.5/onecall/timemachine?lat={latitude}&lon={longitude}&dt={timestamp}&units=metric&appid={WEATHER_API_KEY}')
+def call_weather_api(latitude, longitude):
+    # call weather API with only current weather excluding forecast for the next hour or full day (which is by default included in the response unless we pass the 'exclude' parameter to the request)
+    weather_api_response = requests.get(f'https://api.openweathermap.org/data/2.5/onecall?lat={latitude}&lon={longitude}&exclude=minutely,hourly,daily&units=metric&appid={WEATHER_API_KEY}')
     if weather_api_response.status_code == 200:
         logging.info(f"Request to OPENWEATHER API succeeded with status code 200")
         return weather_api_response.json()
@@ -75,16 +76,16 @@ def create_station_row_in_db(station):
 
 def create_station_update_row_in_db(station, weather_data, last_update_datetime):
     if not 'current' in weather_data:
-        logging.error("OPENWEATHER API did not return expected data.")
+        logging.error(f"OPENWEATHER API did not return expected data: {weather_data}.")
         return
     if not 'rain' in weather_data['current']:
         rain = 0
     else:
-        rain = weather_data['current']['rain']
+        rain = weather_data['current']['rain']['1h']
     if not 'snow' in weather_data['current']:
         snow = 0
     else:
-        snow = weather_data['current']['snow']
+        snow = weather_data['current']['snow']['1h']
 
     new_station_update = StationUpdates(stationId = station['number'],
                                             totalStands = station['bike_stands'],
@@ -154,14 +155,16 @@ while True:
                 station_latitude = station['position']['lat']
                 station_longitude = station['position']['lng']
 
-                # to call the api we need to use unix timestamp in seconds (which we get from the jcdecaux api response)
-                weather_data = call_weather_api(station_latitude, station_longitude,last_update_timestamp_seconds)
+                # to call the api for current weather we need to use the station latitude and longitude
+                weather_data = call_weather_api(station_latitude, station_longitude)
+                # we add this sleep to make sure we stay below the limit of 60 calls/min to the weather api
+                time.sleep(1)
 
                 # if status_code != 200 do
                 if not weather_data:
                     # sleep for 10 seconds before requesting to api again (api could be down)
                     time.sleep(10)
-                    # go back to the try and call the api again
+                    # go back to the beginning of the for loop to process another station
                     continue
                 
                 # write weather api json response to a file named weather-'stationID'-'number of the station'-'datetime_requested'.json
