@@ -34,8 +34,8 @@ Our RDS has two main tables "stations" and "station_updates".
 2) temperature: Celsius degrees 
 3) cloudiness: %
 4) windSpeed: meters/sec
-5) rain: precipitation volume in mm
-6) snow: snow volume in mm
+5) rain: precipitation volume in mm, for the last hour
+6) snow: snow volume in mm, for the last hour
 
 Notes:
 To get the temperature in Celsius we need to change the 'units' parameter when calling the Openweather API to be equal to 'metric'. The default unit for temperature is Kelvin.
