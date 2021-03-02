@@ -136,46 +136,51 @@ while True:
                 json.dump(stations_json, outfile)
 
         for station in stations_json:
-            # check if the station already exists in the database
-            station_row_exist = session.query(Stations).get(station['number'])
-            if not station_row_exist:
-                # insert station in Stations
-                create_station_row_in_db(station)
-            
-            # last_update timestamp returned by Jcdecaux api is in miliseconds and is a float and openweather api receives timestamp in seconds and int
-            # convert station['last_update'] to seconds and int
-            last_update_timestamp_seconds = math.floor(station['last_update'] / 1000)
-
-            # to store the unix timestamp in our database, mysql requires it in datetime format
-            last_update_datetime = datetime.fromtimestamp(last_update_timestamp_seconds)
-
-            # check if the station's last update is already in the database
-            update_row_exist = session.query(StationUpdates).get((station['number'], last_update_datetime))
-            if not update_row_exist:
-                station_latitude = station['position']['lat']
-                station_longitude = station['position']['lng']
-
-                # to call the api for current weather we need to use the station latitude and longitude
-                weather_data = call_weather_api(station_latitude, station_longitude)
-                # we add this sleep to make sure we stay below the limit of 60 calls/min to the weather api
-                time.sleep(1)
-
-                # if status_code != 200 do
-                if not weather_data:
-                    # sleep for 10 seconds before requesting to api again (api could be down)
-                    time.sleep(10)
-                    # go back to the beginning of the for loop to process another station
-                    continue
+            # added this try so we can catch a 'none' value returned in any data field for each station
+            # if a 'none' value is catched for a station that station is discarded and the program moves to process the next station without having to request to API again
+            try:
+                # check if the station already exists in the database
+                station_row_exist = session.query(Stations).get(station['number'])
+                if not station_row_exist:
+                    # insert station in Stations
+                    create_station_row_in_db(station)
                 
-                # write weather api json response to a file named weather-'stationID'-'number of the station'-'datetime_requested'.json
-                # changed from using datetime.now() to last_update_datetime because they will be different and will be easier to match the data with the last_update from jcdecaux response
-                if json_folder_exist:
-                    with open(f"{json_folder}/weather-stationID-{station['number']}-{last_update_datetime}.json", 'w') as outfile:
-                        logging.info(f"Writing weather output to weather-stationID-{station['number']}-{last_update_datetime}.json")
-                        json.dump(weather_data, outfile)
+                # last_update timestamp returned by Jcdecaux api is in miliseconds and is a float and openweather api receives timestamp in seconds and int
+                # convert station['last_update'] to seconds and int
+                last_update_timestamp_seconds = math.floor(station['last_update'] / 1000)
 
-                # insert station availability and weather updates in station_updates table
-                create_station_update_row_in_db(station, weather_data, last_update_datetime)
+                # to store the unix timestamp in our database, mysql requires it in datetime format
+                last_update_datetime = datetime.fromtimestamp(last_update_timestamp_seconds)
+
+                # check if the station's last update is already in the database
+                update_row_exist = session.query(StationUpdates).get((station['number'], last_update_datetime))
+                if not update_row_exist:
+                    station_latitude = station['position']['lat']
+                    station_longitude = station['position']['lng']
+
+                    # to call the api for current weather we need to use the station latitude and longitude
+                    weather_data = call_weather_api(station_latitude, station_longitude)
+                    # we add this sleep to make sure we stay below the limit of 60 calls/min to the weather api
+                    time.sleep(1)
+
+                    # if status_code != 200 do
+                    if not weather_data:
+                        # sleep for 10 seconds before requesting to api again (api could be down)
+                        time.sleep(10)
+                        # go back to the beginning of the for loop to process another station
+                        continue
+                    
+                    # write weather api json response to a file named weather-'stationID'-'number of the station'-'datetime_requested'.json
+                    # changed from using datetime.now() to last_update_datetime because they will be different and will be easier to match the data with the last_update from jcdecaux response
+                    if json_folder_exist:
+                        with open(f"{json_folder}/weather-stationID-{station['number']}-{last_update_datetime}.json", 'w') as outfile:
+                            logging.info(f"Writing weather output to weather-stationID-{station['number']}-{last_update_datetime}.json")
+                            json.dump(weather_data, outfile)
+
+                    # insert station availability and weather updates in station_updates table
+                    create_station_update_row_in_db(station, weather_data, last_update_datetime)
+                except Exception as e:
+                    logging.error(e)
 
 
         # sleep for 5 minutes
