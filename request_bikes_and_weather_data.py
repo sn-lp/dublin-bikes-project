@@ -179,8 +179,8 @@ while True:
 
                     # insert station availability and weather updates in station_updates table
                     create_station_update_row_in_db(station, weather_data, last_update_datetime)
-                except Exception as e:
-                    logging.error(e)
+            except Exception as e:
+                logging.error(e)
 
 
         # sleep for 5 minutes
