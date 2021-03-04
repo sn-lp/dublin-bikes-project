@@ -44,7 +44,7 @@ def call_bikes_api():
 
 def call_weather_api(latitude, longitude):
     # call weather API with only current weather excluding forecast for the next hour or full day (which is by default included in the response unless we pass the 'exclude' parameter to the request)
-    weather_api_response = requests.get(f'https://api.openweathermap.org/data/2.5/onecall?lat={latitude}&lon={longitude}&exclude=minutely,hourly,daily&units=metric&appid={WEATHER_API_KEY}')
+    weather_api_response = requests.get(f'https://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&units=metric&appid={WEATHER_API_KEY}')
     if weather_api_response.status_code == 200:
         logging.info(f"Request to OPENWEATHER API succeeded with status code 200")
         return weather_api_response.json()
@@ -75,27 +75,27 @@ def create_station_row_in_db(station):
         logging.error(f"Failed to add station {new_station.__dict__} to the STATIONS table with error: {e}")    
 
 def create_station_update_row_in_db(station, weather_data, last_update_datetime):
-    if not 'current' in weather_data:
+    if not 'weather' in weather_data and not 'main' in weather_data:
         logging.error(f"OPENWEATHER API did not return expected data: {weather_data}.")
         return
-    if not 'rain' in weather_data['current']:
+    if not 'rain' in weather_data:
         rain = 0
     else:
-        rain = weather_data['current']['rain']['1h']
-    if not 'snow' in weather_data['current']:
+        rain = weather_data['rain']['1h']
+    if not 'snow' in weather_data:
         snow = 0
     else:
-        snow = weather_data['current']['snow']['1h']
+        snow = weather_data['snow']['1h']
 
     new_station_update = StationUpdates(stationId = station['number'],
                                             totalStands = station['bike_stands'],
                                             availableBikes = station['available_bikes'],
                                             freeStands = station['available_bike_stands'],
                                             lastUpdate = last_update_datetime,
-                                            mainWeather = weather_data['current']['weather'][0]['main'],
-                                            temperature = weather_data['current']['temp'],
-                                            cloudiness = weather_data['current']['clouds'],
-                                            windSpeed = weather_data['current']['wind_speed'],
+                                            mainWeather = weather_data['weather'][0]['main'],
+                                            temperature = weather_data['main']['temp'],
+                                            cloudiness = weather_data['clouds']['all'],
+                                            windSpeed = weather_data['wind']['speed'],
                                             rain = rain,
                                             snow = snow)
     
@@ -161,7 +161,7 @@ while True:
                     # to call the api for current weather we need to use the station latitude and longitude
                     weather_data = call_weather_api(station_latitude, station_longitude)
                     # we add this sleep to make sure we stay below the limit of 60 calls/min to the weather api
-                    time.sleep(1)
+                    time.sleep(1.5)
 
                     # if status_code != 200 do
                     if not weather_data:
