@@ -13,14 +13,32 @@
           zoom: 12,
         });
 
+        // We have one infowindow that is shared between all stations so that only one can be open at a time
+        const infowindow = new google.maps.InfoWindow();
         fetch('/stations')
             .then(response => response.json())
             .then(stationData =>  {
-                for (const station of stationData.available) {
-                    new google.maps.Marker({
+                for (const station of stationData) {
+                    const marker = new google.maps.Marker({
                         position: {'lat': station.latitude, 'lng': station.longitude},
                         map
                     });
+
+                    // Information displayed in info window
+                    const contentString =
+                    station.name +
+                    "<ul>" +
+                    "<li>Available Bikes: " + station.availableBikes + "</li>" +
+                    "<li>Free Stands: " + station.freeStands + "</li>" +
+                    "</ul>";
+
+                    marker.addListener("click", () => {
+                        // Close any open info window
+                        if (infowindow) infowindow.close();
+                        infowindow.setContent(contentString);
+                        infowindow.open(map, marker);
+                    });
+
                 }
             })
         };

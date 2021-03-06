@@ -4,6 +4,7 @@ from config import Config
 from sql_tables import Stations, StationUpdates
 from sqlalchemy import insert, create_engine
 from sqlalchemy.orm import sessionmaker
+import pandas as pd
 
 devConfig = Config()
 BIKES_API_KEY = devConfig.JCDECAUX_API_KEY
@@ -42,8 +43,10 @@ def get_db():
 @app.route("/stations")
 def get_stations():
     engine = get_db()
-    data = []
-    rows = engine.execute("SELECT stationId, latitude, longitude FROM stations")
-    for row in rows:
-        data.append(dict(row))
-    return jsonify(available=data)
+    stations = pd.read_sql("SELECT * FROM stations", engine)
+    availability = pd.read_sql("SELECT * FROM station_updates", engine)
+    # Get the latest availability update for each station
+    latest_availability = availability.sort_values("lastUpdate").groupby("stationId").tail(1)
+    # Combine with static stations data
+    stations_with_availability = stations.merge(latest_availability, on="stationId", how='inner')
+    return stations_with_availability.to_json(orient="records")
