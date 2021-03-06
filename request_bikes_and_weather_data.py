@@ -1,7 +1,6 @@
 import time
 import requests
 import json
-from config import Config
 from sql_tables import Stations, StationUpdates
 from sqlalchemy import insert, create_engine
 from sqlalchemy.orm import sessionmaker
@@ -10,6 +9,15 @@ import math
 import logging
 import os
 from sqlalchemy.exc import SQLAlchemyError
+import sys
+
+# read config option from command line and import config file
+import importlib.util
+spec = importlib.util.spec_from_file_location("config",'config_{}.py'.format(sys.argv[1]))
+module = importlib.util.module_from_spec(spec)
+sys.modules["config"] = module
+spec.loader.exec_module(module)
+from config import Config
 
 logging.basicConfig(level=logging.INFO)
 

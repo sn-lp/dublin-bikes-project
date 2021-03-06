@@ -1,6 +1,14 @@
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists
 from sql_tables import Base
+import sys
+
+# read config option from command line and import config file
+import importlib.util
+spec = importlib.util.spec_from_file_location("config",'config_{}.py'.format(sys.argv[1]))
+module = importlib.util.module_from_spec(spec)
+sys.modules["config"] = module
+spec.loader.exec_module(module)
 from config import Config
 
 devConfig = Config()

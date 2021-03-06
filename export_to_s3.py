@@ -1,6 +1,14 @@
 import boto3
-from config import Config
 import os
+import sys
+
+# read config option from command line and import config file
+import importlib.util
+spec = importlib.util.spec_from_file_location("config",'config_{}.py'.format(sys.argv[1]))
+module = importlib.util.module_from_spec(spec)
+sys.modules["config"] = module
+spec.loader.exec_module(module)
+from config import Config
 
 s3 = boto3.client('s3')
 
