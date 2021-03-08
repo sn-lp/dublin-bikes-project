@@ -4,6 +4,7 @@ from sql_tables import Stations, StationUpdates
 from sqlalchemy import insert, create_engine
 from sqlalchemy.orm import sessionmaker
 import pandas as pd
+import sys
 
 # read config option from command line and import config file
 if sys.argv[1] == 'dev':
