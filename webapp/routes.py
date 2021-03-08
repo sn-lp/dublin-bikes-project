@@ -42,8 +42,8 @@ def open_db_connection():
     # stores the connection to the database in globals as a variable called "_database"
     g._database = connect_to_database().connect()
 
-@app.teardown_appcontext
 # this is executed at the end of a request
+@app.teardown_appcontext
 def close_db_connection(exception):
     # we don't want to close the engine as we had before, just the connection
     # check if _database exists in globals before closing
