@@ -1,7 +1,15 @@
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists
 from sql_tables import Base
-from config import Config
+import sys
+
+# read config option from command line and import config file
+if sys.argv[1] == 'dev':
+    from config_dev import Config
+elif sys.argv[1] == 'backup':
+    from config_backup import Config
+else:
+    exit("Invalid config file name. Please pass 'dev' or 'backup' as an argument")
 
 devConfig = Config()
 DB_USER = devConfig.DB_USER

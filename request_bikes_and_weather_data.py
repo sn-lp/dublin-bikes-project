@@ -1,7 +1,6 @@
 import time
 import requests
 import json
-from config import Config
 from sql_tables import Stations, StationUpdates
 from sqlalchemy import insert, create_engine
 from sqlalchemy.orm import sessionmaker
@@ -10,6 +9,15 @@ import math
 import logging
 import os
 from sqlalchemy.exc import SQLAlchemyError
+import sys
+
+# read config option from command line and import config file
+if sys.argv[1] == 'dev':
+    from config_dev import Config
+elif sys.argv[1] == 'backup':
+    from config_backup import Config
+else:
+    exit("Invalid config file name. Please pass 'dev' or 'backup' as an argument")
 
 logging.basicConfig(level=logging.INFO)
 
