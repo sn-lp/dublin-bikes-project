@@ -12,12 +12,12 @@ from sqlalchemy.exc import SQLAlchemyError
 import sys
 
 # read config option from command line and import config file
-if sys.argv[1] == 'dev':
+if len(sys.argv) != 2:
+    sys.exit("Invalid config file name. Please pass 'dev' or 'backup' as an argument")
+elif sys.argv[1] == 'dev':
     from config_dev import Config
 elif sys.argv[1] == 'backup':
     from config_backup import Config
-else:
-    exit("Invalid config file name. Please pass 'dev' or 'backup' as an argument")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,6 +29,7 @@ DB_PASSWORD = devConfig.DB_PASSWORD
 DB_SERVER = devConfig.DB_SERVER
 DB_PORT = devConfig.DB_PORT
 DB_NAME = devConfig.DB_NAME
+
 
 json_folder = "dublin-bikes-and-weather-data-json"
 
