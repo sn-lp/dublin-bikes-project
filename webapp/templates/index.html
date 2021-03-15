@@ -35,7 +35,7 @@
                     const marker = new google.maps.Marker({
                         position: {'lat': station.latitude, 'lng': station.longitude},
                         icon: colourIcon,
-                        map
+                        map,
                     });
 
                     // Information displayed in info window
@@ -44,18 +44,26 @@
                     "<ul>" +
                     "<li>Available Bikes: " + station.availableBikes + "</li>" +
                     "<li>Free Stands: " + station.freeStands + "</li>" +
-                    "</ul>";
+                    "</ul>" +
+                    "<button type='button' onclick='displayChart(" + station.stationId + ")'>More</button>";
 
                     marker.addListener("click", () => {
                         // Close any open info window
                         if (infowindow) infowindow.close();
                         infowindow.setContent(contentString);
                         infowindow.open(map, marker);
+                        console.log(marker);
                     });
 
                 }
             })
         };
+      function displayChart(stationId) {
+        console.log("inside display function")
+        fetch('/availability_history?stationId=' + stationId)
+          .then(response => response.json())
+          .then(stationAvailabilityHistory => {console.log(stationAvailabilityHistory)})
+      };
     </script>
   </head>
   <body>
