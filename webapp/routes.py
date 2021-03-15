@@ -4,6 +4,7 @@ from sql_tables import Stations, StationUpdates
 from sqlalchemy import insert, create_engine
 from sqlalchemy.orm import sessionmaker
 import pandas as pd
+import sys
 
 # read config option from command line and import config file
 if sys.argv[1] == 'dev':
@@ -35,23 +36,25 @@ def connect_to_database():
     engine = create_engine(url, echo=False)
     return engine
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = connect_to_database()
-    return db
+# we need this decorator to open the connection to the database before each request
+@app.before_request
+def open_db_connection():
+    # stores the connection to the database in globals as a variable called "_database"
+    g._database = connect_to_database().connect()
 
-#@app.teardown_appcontext
-#def close_connection(exception):
-#    db = getattr(g, '_database', None)
-#    if db is not None:
-#        db.close()
+# this is executed at the end of a request
+@app.teardown_appcontext
+def close_db_connection(exception):
+    # we don't want to close the engine as we had before, just the connection
+    # check if _database exists in globals before closing
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
 
 @app.route("/stations")
 def get_stations():
-    engine = get_db()
-    stations = pd.read_sql("SELECT * FROM stations", engine)
-    availability = pd.read_sql("SELECT * FROM station_updates", engine)
+    stations = pd.read_sql("SELECT * FROM stations", g._database)
+    availability = pd.read_sql("SELECT * FROM station_updates", g._database)
     # Get the latest availability update for each station
     latest_availability = availability.sort_values("lastUpdate").groupby("stationId").tail(1)
     # Combine with static stations data
