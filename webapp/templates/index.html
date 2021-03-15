@@ -52,14 +52,12 @@
                         if (infowindow) infowindow.close();
                         infowindow.setContent(contentString);
                         infowindow.open(map, marker);
-                        console.log(marker);
                     });
 
                 }
             })
         };
       function displayChart(stationId) {
-        console.log("inside display function")
         fetch('/availability_history?stationId=' + stationId)
           .then(response => response.json())
           .then(stationAvailabilityHistory => {console.log(stationAvailabilityHistory)})
