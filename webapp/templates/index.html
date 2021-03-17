@@ -19,8 +19,22 @@
             .then(response => response.json())
             .then(stationData =>  {
                 for (const station of stationData) {
+
+                    // Assign different colours to stations based on percentage bike availability
+                    // The ranges for each colour were decided to ensure an approximately equal
+                    // number of stations in each group based on historical data
+                    let colourIcon;
+                    if (station.availableBikes / station.totalStands < 0.26) {
+                        colourIcon = "/static/red-square.png";
+                    } else if (station.availableBikes / station.totalStands < 0.44) {
+                        colourIcon = "/static/ylw-square.png";
+                    } else {
+                        colourIcon = "/static/grn-square.png";
+                    }
+
                     const marker = new google.maps.Marker({
                         position: {'lat': station.latitude, 'lng': station.longitude},
+                        icon: colourIcon,
                         map
                     });
 
