@@ -4,23 +4,11 @@ from sql_tables import Stations, StationUpdates
 from sqlalchemy import insert, create_engine
 from sqlalchemy.orm import sessionmaker
 
-# read config option from command line and import config file
-if len(sys.argv) != 2:
-    sys.exit("Invalid config file name. Please pass 'dev' or 'backup' as an argument")
-elif sys.argv[1] == 'dev':
-    from config_dev import Config
-elif sys.argv[1] == 'backup':
-    from config_backup import Config
-
-
-devConfig = Config()
-BIKES_API_KEY = devConfig.JCDECAUX_API_KEY
-WEATHER_API_KEY = devConfig.OPENWEATHER_API_KEY
-DB_USER = devConfig.DB_USER
-DB_PASSWORD = devConfig.DB_PASSWORD
-DB_SERVER = devConfig.DB_SERVER
-DB_PORT = devConfig.DB_PORT
-DB_NAME = devConfig.DB_NAME
+DB_USER = app.config["DB_USER"]
+DB_PASSWORD = app.config["DB_PASSWORD"]
+DB_SERVER = app.config["DB_SERVER"]
+DB_PORT = app.config["DB_PORT"]
+DB_NAME = app.config["DB_NAME"]
 
 @app.route("/")
 def index():
