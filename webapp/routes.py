@@ -1,4 +1,4 @@
-from flask import g, render_template, jsonify
+from flask import g, render_template, jsonify, request, abort
 from webapp import app
 from sql_tables import Stations, StationUpdates
 from sqlalchemy import insert, create_engine
@@ -60,3 +60,21 @@ def get_stations():
     # Combine with static stations data
     stations_with_availability = stations.merge(latest_availability, on="stationId", how='inner')
     return stations_with_availability.to_json(orient="records")
+
+
+@app.route("/availability_history")
+def get_station_availability_history():
+    # we need to have a query parameter to know which station Id we are dealing with
+    station = request.args.get('stationId')
+    # if there is no query parameter
+    if not station:
+        abort(400)
+    # in mysql days of the week are represented by nnumbers from 0 to 6 (0 = Monday)
+    weekdays = [0, 1, 2, 3, 4, 5, 6]
+    availability_history = {}
+    for day in weekdays:
+        rows = g._database.execute(f"select ROUND(avg(availableBikes), 0), hour(lastUpdate) from station_updates where stationId = {station} and weekday(lastUpdate) = {day} group by hour(lastUpdate)  order by hour(lastUpdate) asc;")
+        availability_history[day] = []
+        for row in rows:
+            availability_history[day].append({"available_bikes":int(row[0]), "hour": row[1]})
+    return availability_history
