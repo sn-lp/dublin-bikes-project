@@ -3,6 +3,7 @@
   <head>
     <title>Dublin Bikes App</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
     <script>
       let map;
@@ -45,7 +46,7 @@
                     "<li>Available Bikes: " + station.availableBikes + "</li>" +
                     "<li>Free Stands: " + station.freeStands + "</li>" +
                     "</ul>" +
-                    "<button type='button' onclick='displayChart(" + station.stationId + ")'>More</button>";
+                    "<button type='button' id='moreButton' onclick='displayChart(" + station.stationId + ",\"" + station.name + "\")'>More</button>";
 
                     marker.addListener("click", () => {
                         // Close any open info window
@@ -57,21 +58,157 @@
                 }
             })
         };
-      function displayChart(stationId) {
+      // display the availability trend chart when the "More" button is clicked
+      function displayChart(stationId, stationName) {
         fetch('/availability_history?stationId=' + stationId)
           .then(response => response.json())
-          .then(stationAvailabilityHistory => {console.log(stationAvailabilityHistory)})
+          .then(stationAvailabilityHistory => {
+            console.log(stationAvailabilityHistory);
+            // each dataset is a day of the week with the avg availability for every hour of the day
+            var datasets = [];
+            // keys will be a list with [0, 1, 2, 3, etc.] -- 0=Monday; 1=Tuesday; etc.
+            const keys = Object.keys(stationAvailabilityHistory);
+            for(var i = 0; i < keys.length; i++) {
+              var dayDataset = {label: getWeekday(i), data: [], fill: false, borderColor: getDayLineColour(getWeekday(i))};
+              for (var j = 0; j < stationAvailabilityHistory[keys[i]].length; j++) {
+                dayDataset.data.push(stationAvailabilityHistory[keys[i]][j].available_bikes);
+              }
+              datasets.push(dayDataset);
+            }
+            console.log(datasets);
+            var canvas = document.getElementById('availabilityChart');
+            var ctx = canvas.getContext('2d');
+            let chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: datasets,
+                    labels: ['0h', '1h', '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', '10h', '11h', '12h', '13h', '14h', '15h', '16h', '17h', '18h', '19h', '20h', '21h', '22h', '23h']
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+                options: {
+                  legend: {
+                    labels: {
+                      fontSize: 20,
+                    }
+                  },
+                  title: {
+                      display: true,
+                      text: stationName,
+                      fontSize: 30,
+                  },
+                  scales: {
+                    yAxes: [{
+                      ticks: {
+                        fontSize: 22,
+                      },
+                      scaleLabel: {
+                        display: true,
+                        labelString: 'Bikes Available',
+                        fontSize: 25,
+                      }
+                    }],
+                    xAxes: [{
+                      ticks: {
+                        fontSize: 20,
+                      },
+                        scaleLabel: {
+                          display: true,
+                          labelString: 'Hours',
+                          fontSize: 25,
+                        }
+                      }]
+                  },       
+                }
+              },
+            )
+            // Get the modal
+            var modal = document.getElementById("myModal");
+            // show the modal
+            modal.style.display = "block";
+      })
+    };
+
+      // get a color for each day that will be the color of the day's line in the chart
+      function getDayLineColour(dayLine) {
+        if (dayLine == 'Monday') {
+          return '#622569'
+        }
+        if (dayLine == 'Tuesday') {
+          return '#80ced6'
+        }
+        if (dayLine == 'Wednesday') {
+          return '#ada397'
+        }
+        if (dayLine == 'Thursday') {
+          return '#e0876a'
+        }
+        if (dayLine == 'Friday') {
+          return '#ffcc5c'
+        }
+        if (dayLine == 'Saturday') {
+          return '#034f84'
+        }
+        else {
+          return '#82b74b'
+        }
       };
+
+      function getWeekday(day) {
+        if(day === 0) {
+          return "Monday";
+        }
+        if(day === 1) {
+          return "Tuesday";
+        }
+        if(day === 2) {
+          return "Wednesday";
+        }
+        if(day === 3) {
+          return "Thursday";
+        }
+        if(day === 4) {
+          return "Friday";
+        }
+        if(day === 5) {
+          return "Saturday";
+        }
+        return "Sunday";
+      }
+
     </script>
   </head>
   <body>
     <div id="header"><h1>Group 5 Dublin Bikes App</h1></div>
     <div id="map"></div>
+    <div id="myModal" class="modal">
+      <span class="close">&times;</span>
+      <canvas class="modal-content" id="availabilityChart"></canvas>
+    </div>
 
     <!-- Async script executes immediately and must be after any DOM elements used in callback. -->
     <script
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrzloaJPiuP3QvxoeLVdLyWZsh7oTAXm4&callback=initMap&libraries=&v=weekly"
       async
     ></script>
+    <script>
+      // Get the modal
+      var modal = document.getElementById("myModal");
+      
+      // Get the <span> element that closes the modal
+      var span = document.getElementsByClassName("close")[0];
+
+      // When the user clicks on <span> (x), close the modal (the chart)
+      span.onclick = function() {
+        modal.style.display = "none";
+      }
+
+      // When the user clicks anywhere outside of the modal (grey area in the background), also close the chart
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      }
+    </script>
   </body>
 </html>
