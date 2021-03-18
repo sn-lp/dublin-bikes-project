@@ -65,19 +65,19 @@
           .then(stationAvailabilityHistory => {
             console.log(stationAvailabilityHistory);
             // each dataset is a day of the week with the avg availability for every hour of the day
-            var datasets = [];
+            let datasets = [];
             // keys will be a list with [0, 1, 2, 3, etc.] -- 0=Monday; 1=Tuesday; etc.
             const keys = Object.keys(stationAvailabilityHistory);
             for(var i = 0; i < keys.length; i++) {
-              var dayDataset = {label: getWeekday(i), data: [], fill: false, borderColor: getDayLineColour(getWeekday(i))};
+              let dayDataset = {label: getWeekday(i), data: [], fill: false, borderColor: getDayLineColour(getWeekday(i))};
               for (var j = 0; j < stationAvailabilityHistory[keys[i]].length; j++) {
                 dayDataset.data.push(stationAvailabilityHistory[keys[i]][j].available_bikes);
               }
               datasets.push(dayDataset);
             }
             console.log(datasets);
-            var canvas = document.getElementById('availabilityChart');
-            var ctx = canvas.getContext('2d');
+            let canvas = document.getElementById('availabilityChart');
+            let ctx = canvas.getContext('2d');
             let chart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -127,7 +127,7 @@
               },
             )
             // Get the modal
-            var modal = document.getElementById("myModal");
+            let modal = document.getElementById("myModal");
             // show the modal
             modal.style.display = "block";
       })
@@ -197,10 +197,10 @@
     ></script>
     <script>
       // Get the modal
-      var modal = document.getElementById("myModal");
+      let modal = document.getElementById("myModal");
       
       // Get the <span> element that closes the modal
-      var span = document.getElementsByClassName("close")[0];
+      let span = document.getElementsByClassName("close")[0];
 
       // When the user clicks on <span> (x), close the modal (the chart)
       span.onclick = function() {
