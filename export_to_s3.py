@@ -15,11 +15,13 @@ s3 = boto3.client('s3')
 
 devConfig = Config()
 S3_BUCKET = devConfig.S3_BUCKET
+json_dir = 'dublin-bikes-and-weather-data-json'
 
 # Take all the files in dublin-bikes-json folder and push them to S3
-for filename in os.listdir('dublin-bikes-and-weather-data-json'):
+for filename in os.listdir(json_dir):
     s3.upload_file(
         Filename=f'dublin-bikes-and-weather-data-json/{filename}',
         Bucket=S3_BUCKET,
         Key=filename
     )
+    os.remove(f"{json_dir}/{filename}")
