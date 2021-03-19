@@ -11,6 +11,7 @@ elif sys.argv[1] == 'dev':
 elif sys.argv[1] == 'backup':
     from config_backup import Config
 
+
 devConfig = Config()
 DB_USER = devConfig.DB_USER
 DB_PASSWORD = devConfig.DB_PASSWORD

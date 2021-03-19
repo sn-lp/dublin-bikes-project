@@ -1,8 +1,18 @@
-from flask import g, render_template, jsonify
+from flask import g, render_template, jsonify, request, abort
 from webapp import app
 from sql_tables import Stations, StationUpdates
 from sqlalchemy import insert, create_engine
 from sqlalchemy.orm import sessionmaker
+import pandas as pd
+import sys
+
+# read config option from command line and import config file
+if sys.argv[1] == 'dev':
+    from config_dev import Config
+elif sys.argv[1] == 'backup':
+    from config_backup import Config
+else:
+    exit("Invalid config file name. Please pass 'dev' or 'backup' as an argument")
 
 DB_USER = app.config["DB_USER"]
 DB_PASSWORD = app.config["DB_PASSWORD"]
@@ -23,23 +33,44 @@ def connect_to_database():
     engine = create_engine(url, echo=False)
     return engine
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = connect_to_database()
-    return db
+# we need this decorator to open the connection to the database before each request
+@app.before_request
+def open_db_connection():
+    # stores the connection to the database in globals as a variable called "_database"
+    g._database = connect_to_database().connect()
 
-#@app.teardown_appcontext
-#def close_connection(exception):
-#    db = getattr(g, '_database', None)
-#    if db is not None:
-#        db.close()
+# this is executed at the end of a request
+@app.teardown_appcontext
+def close_db_connection(exception):
+    # we don't want to close the engine as we had before, just the connection
+    # check if _database exists in globals before closing
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
 
 @app.route("/stations")
 def get_stations():
-    engine = get_db()
-    data = []
-    rows = engine.execute("SELECT stationId, latitude, longitude FROM stations")
-    for row in rows:
-        data.append(dict(row))
-    return jsonify(available=data)
+    stations = pd.read_sql("SELECT * FROM stations", g._database)
+    availability = pd.read_sql("SELECT * FROM station_updates", g._database)
+    # Get the latest availability update for each station
+    latest_availability = availability.sort_values("lastUpdate").groupby("stationId").tail(1)
+    # Combine with static stations data
+    stations_with_availability = stations.merge(latest_availability, on="stationId", how='inner')
+    return stations_with_availability.to_json(orient="records")
+
+@app.route("/availability_history")
+def get_station_availability_history():
+    # we need to have a query parameter to know which station Id we are dealing with
+    station = request.args.get('stationId')
+    # if there is no query parameter
+    if not station:
+        abort(400)
+    # in mysql days of the week are represented by nnumbers from 0 to 6 (0 = Monday)
+    weekdays = [0, 1, 2, 3, 4, 5, 6]
+    availability_history = {}
+    for day in weekdays:
+        rows = g._database.execute(f"select ROUND(avg(availableBikes), 0), hour(lastUpdate) from station_updates where stationId = {station} and weekday(lastUpdate) = {day} group by hour(lastUpdate)  order by hour(lastUpdate) asc;")
+        availability_history[day] = []
+        for row in rows:
+            availability_history[day].append({"available_bikes":int(row[0]), "hour": row[1]})
+    return availability_history

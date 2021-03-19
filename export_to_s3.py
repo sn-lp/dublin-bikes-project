@@ -10,6 +10,7 @@ elif sys.argv[1] == 'dev':
 elif sys.argv[1] == 'backup':
     from config_backup import Config
 
+
 s3 = boto3.client('s3')
 
 devConfig = Config()
