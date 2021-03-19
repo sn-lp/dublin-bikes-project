@@ -134,10 +134,32 @@
       })
     };
 
+    // uses open weather constructor and calls API
+    window.myWidgetParam ? window.myWidgetParam : window.myWidgetParam = [];
+    window.myWidgetParam.push({
+      id: 14,
+      cityid: '2964574',
+      appid: '2b0d38b2a507a38d8cffe412613f6e08',
+      units: 'metric',
+      containerid: 'openweather-widget',
+    });
+
+    ( function weatherWidget() {
+      var script = document.createElement('script');
+      script.async = true;
+      script.charset = "utf-8";
+      script.src = "//openweathermap.org/themes/openweathermap/assets/vendor/owm/js/weather-widget-generator.js";
+      var s = document.getElementsByTagName('script')[0];
+      s.parentNode.insertBefore(script, s);
+      }
+     )
+     ();
+
     </script>
   </head>
   <body>
     <div id="header"><h1>Group 5 Dublin Bikes App</h1></div>
+    <div id="openweather-widget"></div>
     <div id="map"></div>
     <div id="myModal" class="modal">
       <span class="close">&times;</span>

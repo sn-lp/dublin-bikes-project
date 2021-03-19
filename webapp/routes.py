@@ -6,14 +6,6 @@ from sqlalchemy.orm import sessionmaker
 import pandas as pd
 import sys
 
-# read config option from command line and import config file
-if sys.argv[1] == 'dev':
-    from config_dev import Config
-elif sys.argv[1] == 'backup':
-    from config_backup import Config
-else:
-    exit("Invalid config file name. Please pass 'dev' or 'backup' as an argument")
-
 DB_USER = app.config["DB_USER"]
 DB_PASSWORD = app.config["DB_PASSWORD"]
 DB_SERVER = app.config["DB_SERVER"]
