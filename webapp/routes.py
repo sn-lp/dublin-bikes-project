@@ -61,7 +61,6 @@ def get_stations():
     stations_with_availability = stations.merge(latest_availability, on="stationId", how='inner')
     return stations_with_availability.to_json(orient="records")
 
-
 @app.route("/availability_history")
 def get_station_availability_history():
     # we need to have a query parameter to know which station Id we are dealing with

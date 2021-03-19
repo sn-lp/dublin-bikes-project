@@ -3,6 +3,7 @@
   <head>
     <title>Dublin Bikes App</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
     <script>
       let map;
@@ -45,7 +46,7 @@
                     "<li>Available Bikes: " + station.availableBikes + "</li>" +
                     "<li>Free Stands: " + station.freeStands + "</li>" +
                     "</ul>" +
-                    "<button type='button' onclick='displayChart(" + station.stationId + ")'>More</button>";
+                    "<button type='button' id='moreButton' onclick='displayChart(" + station.stationId + ",\"" + station.name + "\")'>More</button>";
 
                     marker.addListener("click", () => {
                         // Close any open info window
@@ -57,21 +58,115 @@
                 }
             })
         };
-      function displayChart(stationId) {
+      // display the availability trend chart when the "More" button is clicked
+      function displayChart(stationId, stationName) {
         fetch('/availability_history?stationId=' + stationId)
           .then(response => response.json())
-          .then(stationAvailabilityHistory => {console.log(stationAvailabilityHistory)})
-      };
+          .then(stationAvailabilityHistory => {
+            // each dataset is a day of the week with the avg availability for every hour of the day
+            let datasets = [];
+            // keys will be a list with [0, 1, 2, 3, etc.] -- 0=Monday; 1=Tuesday; etc.
+            const keys = Object.keys(stationAvailabilityHistory);
+            // dicts to convert the keys that we get from stationAvailabilityHistory into the weekdays and give a color to each of the days for our chart
+            let labelsDict = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"};
+            let colorsDict = {0: "#622569", 1: "#80ced6", 2: "#ada397", 3: "#e0876a", 4: "#ffcc5c", 5: "#034f84", 6: "#82b74b"};
+            for(var i = 0; i < keys.length; i++) {
+              let dayDataset = {label: labelsDict[i], data: [], fill: false, borderColor: colorsDict[i]};
+              for (var j = 0; j < stationAvailabilityHistory[keys[i]].length; j++) {
+                dayDataset.data.push(stationAvailabilityHistory[keys[i]][j].available_bikes);
+              }
+              datasets.push(dayDataset);
+            }
+            let canvas = document.getElementById('availabilityChart');
+            let ctx = canvas.getContext('2d');
+            let chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: datasets,
+                    labels: ['0h', '1h', '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', '10h', '11h', '12h', '13h', '14h', '15h', '16h', '17h', '18h', '19h', '20h', '21h', '22h', '23h']
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+                options: {
+                  legend: {
+                    labels: {
+                      fontSize: 20,
+                    }
+                  },
+                  tooltips: {
+                    titleFontSize: 20,
+                    bodyFontSize: 20,
+                  },
+                  title: {
+                      display: true,
+                      text: stationName,
+                      fontSize: 30,
+                  },
+                  scales: {
+                    yAxes: [{
+                      ticks: {
+                        fontSize: 22,
+                      },
+                      scaleLabel: {
+                        display: true,
+                        labelString: 'Bikes Available',
+                        fontSize: 25,
+                      }
+                    }],
+                    xAxes: [{
+                      ticks: {
+                        fontSize: 20,
+                      },
+                        scaleLabel: {
+                          display: true,
+                          labelString: 'Hours',
+                          fontSize: 25,
+                        }
+                      }]
+                  },       
+                }
+              },
+            )
+            // Get the modal
+            let modal = document.getElementById("myModal");
+            // show the modal
+            modal.style.display = "block";
+      })
+    };
+
     </script>
   </head>
   <body>
     <div id="header"><h1>Group 5 Dublin Bikes App</h1></div>
     <div id="map"></div>
-
+    <div id="myModal" class="modal">
+      <span class="close">&times;</span>
+      <canvas class="modal-content" id="availabilityChart"></canvas>
+    </div>
+    
     <!-- Async script executes immediately and must be after any DOM elements used in callback. -->
     <script
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrzloaJPiuP3QvxoeLVdLyWZsh7oTAXm4&callback=initMap&libraries=&v=weekly"
       async
     ></script>
+    <script>
+      // Get the modal
+      let modal = document.getElementById("myModal");
+      
+      // Get the <span> element that closes the modal
+      let span = document.getElementsByClassName("close")[0];
+
+      // When the user clicks on <span> (x), close the modal (the chart)
+      span.onclick = function() {
+        modal.style.display = "none";
+      }
+
+      // When the user clicks anywhere outside of the modal (grey area in the background), also close the chart
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      }
+    </script>
   </body>
 </html>
