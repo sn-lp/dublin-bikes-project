@@ -63,7 +63,6 @@
         fetch('/availability_history?stationId=' + stationId)
           .then(response => response.json())
           .then(stationAvailabilityHistory => {
-            console.log(stationAvailabilityHistory);
             // each dataset is a day of the week with the avg availability for every hour of the day
             let datasets = [];
             // keys will be a list with [0, 1, 2, 3, etc.] -- 0=Monday; 1=Tuesday; etc.
@@ -78,7 +77,6 @@
               }
               datasets.push(dayDataset);
             }
-            console.log(datasets);
             let canvas = document.getElementById('availabilityChart');
             let ctx = canvas.getContext('2d');
             let chart = new Chart(ctx, {
