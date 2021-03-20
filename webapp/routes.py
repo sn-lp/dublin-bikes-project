@@ -66,3 +66,8 @@ def get_station_availability_history():
         for row in rows:
             availability_history[day].append({"available_bikes":int(row[0]), "hour": row[1]})
     return availability_history
+
+@app.route("/weatherWidget.js")
+def weatherWidget_js():
+    return render_template('weatherWidget.js',
+                           openweather_api=app.config['OPENWEATHER_API_KEY'])
