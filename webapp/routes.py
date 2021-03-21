@@ -67,7 +67,22 @@ def get_station_availability_history():
             availability_history[day].append({"available_bikes":int(row[0]), "hour": row[1]})
     return availability_history
 
+
 @app.route("/weatherWidget.js")
 def weatherWidget_js():
     return render_template('weatherWidget.js',
                            openweather_api=app.config['OPENWEATHER_API_KEY'])
+
+@app.route("/available_spaces_history")
+def get_station_available_spaces_history():
+    station = request.args.get('stationId')
+    if not station:
+        abort(400)
+    weekdays = [0, 1, 2, 3, 4, 5, 6]
+    available_spaces_history = {}
+    for day in weekdays:
+        rows = g._database.execute(f"select ROUND(avg(freeStands), 0), hour(lastUpdate) from station_updates where stationId = {station} and weekday(lastUpdate) = {day} group by hour(lastUpdate)  order by hour(lastUpdate) asc;")
+        available_spaces_history[day] = []
+        for row in rows:
+            available_spaces_history[day].append({"available_spaces":int(row[0]), "hour": row[1]})
+    return available_spaces_history
