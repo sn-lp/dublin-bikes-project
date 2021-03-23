@@ -10,16 +10,27 @@
       let viewAvailableBikes = true;
 
       function selectAvailableBikesView() {
+        // if the view is already selected don't do anything
+        if (viewAvailableBikes) {
+          return;
+        }
         viewAvailableBikes = true;
-        initMap();
+        changeViewTitle();
+        updateMarkers();
       };
 
       function selectFreeSpacesView() {
+        if (!viewAvailableBikes){
+          return;
+        }
         viewAvailableBikes = false;
-        initMap();
+        changeViewTitle();
+        updateMarkers();
       };
 
       let map;
+      let infowindow;
+      let markersArray = [];
       let chart;
 
       function initMap() {
@@ -28,37 +39,70 @@
           center: { lat: 53.3498, lng: -6.2603 },
           zoom: 14,
         });
+        updateMarkers();
+      }
 
+      function updateMarkers() {
         // We have one infowindow that is shared between all stations so that only one can be open at a time
-        const infowindow = new google.maps.InfoWindow();
+        // this closes the infoWindow if one exists already, so when changing to another view an existing infoWindow cannot be carried to that view
+        if(infowindow) {
+          infowindow.close();
+        }
+        infowindow = new google.maps.InfoWindow();
+        
         fetch('/stations')
             .then(response => response.json())
             .then(stationData =>  {
                 for (const station of stationData) {
-                  // get the marker colour according to the current selected view 
-                  let colourIcon = getMarkerColour(station);
+                  let stationProperty = viewAvailableBikes ? station.availableBikes : station.freeStands;
+                  // get the marker colour according to the current selected view
+                  let colourIcon = getMarkerColour(stationProperty, station.totalStands);
                   // this replaces the char `'` with ' ' in the station name when passed to displayChart() because it was causing troubles when clicking the "More" button
                   const stationName = station.name.replaceAll("'", " ");
-                  // Information displayed in info window (the same in both views)
-                  let contentString =
-                    station.name +
-                    "<ul>" +
-                    "<li>Available Bikes: " + station.availableBikes + "</li>" +
-                    "<li>Free Stands: " + station.freeStands + "</li>" +
-                    "</ul>" +
-                    "<button type='button' id='moreButton' onclick='displayChart(" + station.stationId + ",\"" + stationName + "\")'>More</button>";
-
-                  const marker = new google.maps.Marker({
-                      position: {'lat': station.latitude, 'lng': station.longitude},
-                      icon: colourIcon,
-                      map,
-                  });
-                  marker.addListener("click", () => {
+                  // get the infoWindow content (number of bikes and free spaces for each station)
+                  let contentString = getWindowContent(station, stationName);
+                  
+                  // code to create markers the first time the page loads
+                  // check if all station markers were added to the markersArray, if not it means it is still the first time a station marker is being created
+                  if (markersArray.length != stationData.length) {
+                    const newMarker = new google.maps.Marker({
+                        position: {'lat': station.latitude, 'lng': station.longitude},
+                        icon: colourIcon,
+                        map,
+                    });
+                    // add the station marker to the array markersArray
+                    markersArray.push(newMarker);
+                    newMarker.addListener("click", () => {
                       // Close any open info window
                       if (infowindow) infowindow.close();
                       infowindow.setContent(contentString);
-                      infowindow.open(map, marker);
+                      infowindow.open(map, newMarker);
                   });
+                  }
+                  else{
+                    // this code makes it possible to just update the marker's colours and infoWindow content when changing the view, instead of creating new markers (fixes bug where markers were off after changing views)
+                    // get marker from markersArray that belongs to the station
+                    for (marker of markersArray) {
+                      markerPosition = marker.getPosition();
+                      markerLat = markerPosition.lat();
+                      markerLong = markerPosition.lng();
+                      if (markerLat == station.latitude && markerLong == station.longitude) {
+                        // clear previous listeners to update content string (meanwhile number of bikes/spaces might have changed)
+                        google.maps.event.clearListeners(marker, 'click');
+                        // update marker colour
+                        marker.setIcon(getMarkerColour(stationProperty, station.totalStands));
+                        // get updated content for infowindow
+                        let contentString = getWindowContent(station, stationName);
+                        google.maps.event.addListener(this.marker, 'click', function () {
+                          // Close any open info window
+                          if (infowindow) infowindow.close();
+                          // add the updated content and open the infoWindow
+                          infowindow.setContent(contentString);
+                          infowindow.open(this.getMap(), this);
+                        });
+                      }
+                    }
+                  }
                 }
             })
         };
@@ -73,31 +117,33 @@
         }
       };
 
-      function getMarkerColour(station) {
+      function getMarkerColour(stationProperty, totalStands) {
         let colourIcon;
-        if (viewAvailableBikes) {
-          // Assign different colours to stations based on percentage bike availability
-          // The ranges for each colour were decided to ensure an approximately equal
-          // number of stations in each group based on historical data
-          if (station.availableBikes / station.totalStands < 0.26) {
-              colourIcon = "/static/red-square.png";
-          } else if (station.availableBikes / station.totalStands < 0.44) {
-              colourIcon = "/static/ylw-square.png";
-          } else {
-              colourIcon = "/static/grn-square.png";
-          }
-        } 
-        else {
-          if (station.freeStands / station.totalStands < 0.26) {
-              colourIcon = "/static/red-square.png";
-          } else if (station.freeStands / station.totalStands < 0.44) {
-              colourIcon = "/static/ylw-square.png";
-          } else {
-              colourIcon = "/static/grn-square.png";
-          }
+        // Assign different colours to stations based on percentage bike availability
+        // The ranges for each colour were decided to ensure an approximately equal
+        // number of stations in each group based on historical data
+        if (stationProperty / totalStands < 0.26) {
+            colourIcon = "/static/red-square.png";
+        } else if (stationProperty / totalStands < 0.44) {
+            colourIcon = "/static/ylw-square.png";
+        } else {
+            colourIcon = "/static/grn-square.png";
         }
         return colourIcon;
       };
+
+      function getWindowContent(station, stationName){
+        // Information displayed in info window (the same in both views)
+        let contentString =
+                    station.name +
+                    "<ul>" +
+                    "<li>Available Bikes: " + station.availableBikes + "</li>" +
+                    "<li>Free Stands: " + station.freeStands + "</li>" +
+                    "</ul>" +
+                    "<button type='button' id='moreButton' onclick='displayChart(" + station.stationId + ",\"" + stationName + "\")'>More</button>";
+        return contentString;
+      };
+
       // function to display the bikes or spaces availability trend chart when the "More" button is clicked
       function displayChart(stationId, stationName) {
         let endpoint;
@@ -143,10 +189,10 @@
           let dayDataset = {label: labelsDict[i], data: [], fill: false, borderColor: colorsDict[i]};
           for (var j = 0; j < stationHistory[keys[i]].length; j++) {
             if (viewAvailableBikes){
-              dayDataset.data.push(stationHistory[keys[i]][j].available_bikes);
+              dayDataset.data.push(stationHistory[keys[i]][j].availableBikes);
             }
             else {
-              dayDataset.data.push(stationHistory[keys[i]][j].available_spaces);
+              dayDataset.data.push(stationHistory[keys[i]][j].freeStands);
             }
           }
           datasets.push(dayDataset);
