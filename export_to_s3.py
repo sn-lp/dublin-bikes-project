@@ -6,21 +6,21 @@ import sys
 if len(sys.argv) != 2:
     sys.exit("Invalid config file name. Please pass 'dev' or 'backup' as an argument")
 elif sys.argv[1] == 'dev':
-    from config_dev import Config
+    from config import MainConfig
+    config = MainConfig()
 elif sys.argv[1] == 'backup':
-    from config_backup import Config
-
+    from config import BackupConfig
+    config = BackupConfig()
 
 s3 = boto3.client('s3')
 
-devConfig = Config()
-S3_BUCKET = devConfig.S3_BUCKET
+S3_BUCKET = config.S3_BUCKET
 json_dir = 'dublin-bikes-and-weather-data-json'
 
 # Take all the files in dublin-bikes-json folder and push them to S3
 for filename in os.listdir(json_dir):
     s3.upload_file(
-        Filename=f'dublin-bikes-and-weather-data-json/{filename}',
+        Filename=f'{json_dir}/{filename}',
         Bucket=S3_BUCKET,
         Key=filename
     )
