@@ -16,6 +16,28 @@ body {
   padding: 0;
 }
 
+.view-title-div{
+  text-align: right;
+  margin-bottom: 5px;
+  margin-right: 20px;
+}
+#viewTitle {
+  margin-top: 0;
+}
+
+.view-selection {
+  text-align: right;
+  margin-bottom: 10px;
+}
+
+.select-view-button {
+  margin-right: 20px;
+}
+
+#availableBikesButton, #availableSpacesButton {
+  display: inline-block;
+}
+
 /* The Modal (background) */
 .modal {
   display: none; /* Hidden by default */

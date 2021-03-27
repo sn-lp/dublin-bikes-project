@@ -12,6 +12,17 @@ DB_SERVER = app.config["DB_SERVER"]
 DB_PORT = app.config["DB_PORT"]
 DB_NAME = app.config["DB_NAME"]
 
+def get_station_availability_averages(station_property, station):
+    # in mysql days of the week are represented by nnumbers from 0 to 6 (0 = Monday)
+    weekdays = [0, 1, 2, 3, 4, 5, 6]
+    availability_history = {}
+    for day in weekdays:
+        rows = g._database.execute(f"select ROUND(avg({station_property}), 0), hour(lastUpdate) from station_updates where stationId = {station} and weekday(lastUpdate) = {day} group by hour(lastUpdate)  order by hour(lastUpdate) asc;")
+        availability_history[day] = []
+        for row in rows:
+            availability_history[day].append({f"{station_property}":int(row[0]), "hour": row[1]})
+    return availability_history
+
 @app.route("/")
 def index():
     return render_template('index.html')
@@ -57,17 +68,17 @@ def get_station_availability_history():
     # if there is no query parameter
     if not station:
         abort(400)
-    # in mysql days of the week are represented by nnumbers from 0 to 6 (0 = Monday)
-    weekdays = [0, 1, 2, 3, 4, 5, 6]
-    availability_history = {}
-    for day in weekdays:
-        rows = g._database.execute(f"select ROUND(avg(availableBikes), 0), hour(lastUpdate) from station_updates where stationId = {station} and weekday(lastUpdate) = {day} group by hour(lastUpdate)  order by hour(lastUpdate) asc;")
-        availability_history[day] = []
-        for row in rows:
-            availability_history[day].append({"available_bikes":int(row[0]), "hour": row[1]})
-    return availability_history
+    return get_station_availability_averages("availableBikes", station)
+
 
 @app.route("/weatherWidget.js")
 def weatherWidget_js():
     return render_template('weatherWidget.js',
                            openweather_api=app.config['OPENWEATHER_API_KEY'])
+
+@app.route("/available_spaces_history")
+def get_station_available_spaces_history():
+    station = request.args.get('stationId')
+    if not station:
+        abort(400)
+    return get_station_availability_averages("freeStands", station)
