@@ -4,7 +4,6 @@ equal distribution of stations in each of the three colour groups (red, yellow, 
 """
 from sqlalchemy import create_engine
 import pandas as pd
-from config import Config
 
 # read config option from command line and import config file
 if len(sys.argv) != 2:
