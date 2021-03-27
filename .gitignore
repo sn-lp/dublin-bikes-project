@@ -2,8 +2,6 @@ __pycache__
 *.pyc
 *.pyo
 *.log
-config_dev.py
-config_backup.py
 config.py
 dublin-bikes-and-weather-data-json
 .DS_Store

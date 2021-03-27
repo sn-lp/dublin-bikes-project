@@ -4,14 +4,22 @@ equal distribution of stations in each of the three colour groups (red, yellow, 
 """
 from sqlalchemy import create_engine
 import pandas as pd
-from config import Config
 
-devConfig = Config()
-DB_USER = devConfig.DB_USER
-DB_PASSWORD = devConfig.DB_PASSWORD
-DB_SERVER = devConfig.DB_SERVER
-DB_PORT = devConfig.DB_PORT
-DB_NAME = devConfig.DB_NAME
+# read config option from command line and import config file
+if len(sys.argv) != 2:
+    sys.exit("Invalid config file name. Please pass 'dev' or 'backup' as an argument")
+elif sys.argv[1] == 'dev':
+    from config import MainConfig
+    config = MainConfig()
+elif sys.argv[1] == 'backup':
+    from config import BackupConfig
+    config = BackupConfig()
+
+DB_USER = config.DB_USER
+DB_PASSWORD = config.DB_PASSWORD
+DB_SERVER = config.DB_SERVER
+DB_PORT = config.DB_PORT
+DB_NAME = config.DB_NAME
 
 db_url = 'mysql+mysqlconnector://{}:{}@{}:{}/{}'.format(DB_USER, DB_PASSWORD, DB_SERVER, DB_PORT, DB_NAME)
 engine = create_engine(db_url, echo=False)
