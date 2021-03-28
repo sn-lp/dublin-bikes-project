@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Dublin Bikes App</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
+    <script>
+        let map;
+        let clickedMarker;
+        let selectedMarkerGreen;
+        let timesMapping;
+        let dropdownDaysOptions;
+        let hoursForEachOptionDay = {};
+        let isStationChosen = false;
+        let isTimeChosen = false;
+        let currentStationLat;
+        let currentStationLong;
+        let timeSelected;
+        let daySelected;
+        let predictionEndpoint;
+
+        function initMap() {
+          map = new google.maps.Map(document.getElementById("predictionMap"), {
+            center: { lat: 53.3498, lng: -6.2603 },
+            zoom: 13,
+          });
+          createMarkers();
+          displayUserInputForm();
+          getNext47HoursAndTimestamps();
+        };
+
+        // display the markers for each station in the map
+        function createMarkers(){
+          const infowindow = new google.maps.InfoWindow();
+          fetch('/stations')
+              .then(response => response.json())
+              .then(stationData =>  {
+                  for (const station of stationData) {
+                      const marker = new google.maps.Marker({
+                          map: map,
+                          position: {'lat': station.latitude, 'lng': station.longitude},
+                          icon: "/static/blue-dot.png"
+                      });
+
+                      let stationName = station.name.replaceAll("'", " ");
+                      // Information displayed in info window
+                      const contentString = 
+                      station.name +
+                      "<div class='select-station'><button id='stationSelectButton' onclick='handleSelectedStation(\"" + stationName + '\",' + station.latitude + ',' + station.longitude + ")'>Select this station</button></div>";
+                      marker.addListener("click", () => {
+                          clickedMarker = marker;
+                          // Close any open info window
+                          if (infowindow) infowindow.close();
+                          infowindow.setContent(contentString);
+                          infowindow.open(map, marker);
+                      });
+
+                  }
+              })
+        };
+
+        // get valid hour options to show the user according to hourly forecast returned by the chose weather api
+        function getNext47HoursAndTimestamps(){
+          // get current day and set minutes, seconds and ms to 0 since our chosen api returns hourly forecast 
+          let currentDate = new Date();
+          currentDate.setMinutes(0);
+          currentDate.setSeconds(0);
+          currentDate.setMilliseconds(0);
+          timesMapping = {};
+          // calculate next 47 hours (because not including current hour) since our chosen API returns a forecast for the next 48hours 
+          for (i = 0; i < 47; i++){
+            let nextHourDate = new Date(currentDate.setHours(currentDate.getHours() + 1));
+            let dayString = nextHourDate.toString().split(' ').slice(0, 4).join(' ');
+            let timeString = nextHourDate.toString().split(' ').slice(4, 5).join(' ');
+            // getTime always return timestamp in UTC while Date is according to browser timezone (openweather api is also using UTC for timestamps)
+            let unixTimestamp = nextHourDate.getTime()/1000;
+            timesMapping[nextHourDate.toString()] = [dayString, timeString, unixTimestamp];
+          }
+          return timesMapping;
+        };
+
+        timesMapping =  getNext47HoursAndTimestamps();
+
+        // get the valid day options to build the dropdown menu
+        function getDropdownDaysOptions(){
+          dropdownDaysOptions = [];
+          for (let key in timesMapping){
+            if (!dropdownDaysOptions.includes(timesMapping[key][0])){
+              dropdownDaysOptions.push(timesMapping[key][0]);
+            }
+          }
+          return dropdownDaysOptions;
+        };
+        dropdownDaysOptions = getDropdownDaysOptions();
+
+        // get the valid hour options to build the time dropdown menu according to the day chosen by the user
+        function getDropdownHourOptions(){
+          for (let i in dropdownDaysOptions){
+            hoursForEachOptionDay[dropdownDaysOptions[i]] = [];
+            for (let key in timesMapping){
+              if (timesMapping[key][0] == dropdownDaysOptions[i]){
+                hoursForEachOptionDay[dropdownDaysOptions[i]].push(timesMapping[key][1]);
+              }
+            }
+          }
+          return hoursForEachOptionDay;
+        };
+        hoursForEachOptionDay = getDropdownHourOptions();
+        
+        // create and display dropdown to choose day
+        function displayUserInputForm(){
+          let dayForm = "<form>" + 
+                "<label for='day'>Choose a day</label>" +
+                "<select id='day' name='day' onchange='handleDayOptionChange(this)'>" +
+                "<option value='' disabled selected></option>";
+          for (let day in dropdownDaysOptions){
+            dayForm += "<option value=" + i + ">" + dropdownDaysOptions[day] + "</option>";
+          }
+          dayForm += "</select></form>";
+          document.getElementById("daySelect").innerHTML = dayForm;
+        };
+
+        // create and display time dropdown menu with valid times according to day chosen
+        function handleDayOptionChange(selection){
+          daySelected = selection.options[selection.selectedIndex].text;
+          let hours;
+          for (let key in hoursForEachOptionDay){
+            if(key == daySelected){
+              hours = hoursForEachOptionDay[key];
+            }
+          }
+          let timeForm = "<form>" + 
+                "<label for='time'>Choose a time</label>" +
+                "<select id='time' name='time' onchange='handleTimeOptionChange(this)'>" +
+                "<option value='' disabled selected></option>";
+          for (let i in hours){
+            timeForm += "<option value=" + i + ">" + hours[i] + "</option>";
+          }
+          timeForm += "</select></form>";
+          document.getElementById("timeSelect").innerHTML = timeForm;
+        };
+        
+        // store the time selected by the user 
+        function handleTimeOptionChange(selection){
+          timeSelected = selection.options[selection.selectedIndex].text;
+          isTimeChosen = true;
+          tryDisplaySubmitButton();
+        }
+
+        // change marker colour when station selected and display the selected station name
+        function handleSelectedStation(stationName, stationLat, stationLong){
+          // if the user selects another station, change the previous marker colour back to blue
+          if(selectedMarkerGreen !== undefined) {
+            selectedMarkerGreen.setIcon('/static/blue-dot.png');
+          }
+          let stationConfirmation = "<p>Station Selected: " + stationName + "</p>";
+          // if a station is selected change the marker colour to green
+          clickedMarker.setIcon('/static/green-dot.png');
+          selectedMarkerGreen = clickedMarker;
+          document.getElementById("stationSelected").innerHTML = stationConfirmation;
+          currentStationLat = stationLat;
+          currentStationLong = stationLong;
+          isStationChosen = true;
+          tryDisplaySubmitButton();
+        };
+
+        // try display the submit button after the day, time and station were selected
+        function tryDisplaySubmitButton(){
+          if(isStationChosen && isTimeChosen) {
+            document.getElementById("submitTripPlan").innerHTML = "<button id='submitButton' onclick='getForecastAndPrediction(" + currentStationLat + "," + currentStationLong + ",\"" + daySelected + "\"" + ",\"" + timeSelected + "\"" + ")'>Submit</button>";
+            document.getElementById("submitTripPlan").style.display = "block";
+          }
+        };
+
+        // get weather forecast and prediction
+        function getForecastAndPrediction(stationLat, stationLong, daySelected, timeSelected){
+          let requestedTimestamp;
+          for (let i in timesMapping){
+            if (timesMapping[i][0] == daySelected && timesMapping[i][1] == timeSelected){
+              requestedTimestamp = timesMapping[i][2];
+            }
+          }
+          predictionEndpoint = '/weather_forecast_and_availability_prediction?stationLat=' + stationLat + '&stationLong=' + stationLong + '&timeRequested=' + requestedTimestamp;
+          fetch(predictionEndpoint)
+          .then(response => response.json())
+          // at the moment we are just doing a console.log with what is returned by the backend about the weather forecast but next step is to use the data to display it to the user
+          .then(weatherForecast => {console.log(weatherForecast)})
+          // TODO display weather forecast
+          // TODO get weather prediction
+        };
+
+    </script>
+  </head>
+  <body>
+    
+    <div id="predictionHeader">
+      <h1>Group 5 Dublin Bikes App</h1>
+    </div>
+    
+    <div class='content-container'>
+      <div id="leftSideColumn">
+        <div id='planYourTrip'>
+          <div id='planYourTripTitle'>
+            <h2>Plan your trip</h2>
+          </div>
+          <div id='stationSelected'>
+            <p>Select your station in the map</p>
+          </div>
+          <div id='daySelect'></div>
+          <div id='timeSelect'></div>
+          <div id='submitTripPlan'></div>
+        </div>
+        <div id='weatherForecast'>
+          <p>Weather Forecast goes here</p>
+        </div>
+        <div id='stationAvailabilityPrediction'>
+          <p>Availability Prediction goes here</p>
+        </div>
+      </div>
+      <div class='vertical-line'></div>
+      <div id="predictionMap"></div>
+    </div>
+
+    <!-- Async script executes immediately and must be after any DOM elements used in callback. -->
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrzloaJPiuP3QvxoeLVdLyWZsh7oTAXm4&callback=initMap&libraries=&v=weekly"
+      async
+    ></script>
+  </body>
+</html>
