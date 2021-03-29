@@ -5,31 +5,41 @@
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
     <script>
-        let map;
-        let clickedMarker;
-        let selectedMarkerGreen;
+        // flags to trigger the display of the submit button when both are true
+        let isStationChosen = false;
+        let isTimeChosen = false;
+
+        // these variables are used by different independent functions
         let timesMapping;
         let dropdownDaysOptions;
         let hoursForEachOptionDay = {};
-        let isStationChosen = false;
-        let isTimeChosen = false;
+
+        // we need to keep track of this since the user might change the selected station/day/time before submiting
+        let clickedMarker;
+        let selectedMarkerGreen;
         let currentStationLat;
         let currentStationLong;
         let timeSelected;
         let daySelected;
-        let predictionEndpoint;
 
         function initMap() {
-          map = new google.maps.Map(document.getElementById("predictionMap"), {
+          let map = new google.maps.Map(document.getElementById("predictionMap"), {
             center: { lat: 53.3498, lng: -6.2603 },
             zoom: 13,
           });
-          createMarkers();
+          createMarkers(map);
+        };
+
+        // calculate the current date and next 47 hours, get the valid day options and display the form for day selection when page loads
+        window.onload = function() {
+          timesMapping = getNext47HoursAndTimestamps();
+          dropdownDaysOptions = getDropdownDaysOptions();
+          hoursForEachOptionDay = getDropdownHourOptions();
           displayUserInputForm();
         };
 
         // display the markers for each station in the map
-        function createMarkers(){
+        function createMarkers(map){
           const infowindow = new google.maps.InfoWindow();
           fetch('/stations')
               .then(response => response.json())
@@ -78,8 +88,7 @@
           return timesMapping;
         };
 
-        timesMapping =  getNext47HoursAndTimestamps();
-
+        
         // get the valid day options to build the dropdown menu
         function getDropdownDaysOptions(){
           dropdownDaysOptions = [];
@@ -90,7 +99,6 @@
           }
           return dropdownDaysOptions;
         };
-        dropdownDaysOptions = getDropdownDaysOptions();
 
         // get the valid hour options to build the time dropdown menu according to the day chosen by the user
         function getDropdownHourOptions(){
@@ -104,7 +112,6 @@
           }
           return hoursForEachOptionDay;
         };
-        hoursForEachOptionDay = getDropdownHourOptions();
         
         // create and display dropdown to choose day
         function displayUserInputForm(){
@@ -173,6 +180,7 @@
 
         // get weather forecast and prediction
         function getForecastAndPrediction(stationLat, stationLong, daySelected, timeSelected){
+          let predictionEndpoint;
           let requestedTimestamp;
           for (let i in timesMapping){
             if (timesMapping[i][0] == daySelected && timesMapping[i][1] == timeSelected){

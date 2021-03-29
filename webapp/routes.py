@@ -125,7 +125,7 @@ def get_weather_forecast_and_prediction_for_station():
                         snow = hourly_weather_forecast["hourly"][i]["snow"]["1h"]
                     # for now return the weather forecast conditions to the frontend as a dictionary
                     return {time_requested_unix_timestamp:{"main weather":main_weather, "temperature":temperature, "cloudiness": cloudiness, "wind speed": wind_speed, "rain": rain, "snow": snow, "icon": weather_icon}}
-            return {}    
+            return {"error": f"time requested didn't match available data: {hourly_weather_forecast['hourly']}"}    
     else:
         logging.error(f"Request to Openweather Forecast API failed with {weather_forecast_api_response.status_code}: {weather_forecast_api_response.reason}")
         abort(400)
