@@ -190,9 +190,26 @@
           fetch(predictionEndpoint)
           .then(response => response.json())
           // at the moment we are just doing a console.log with what is returned by the backend about the weather forecast but next step is to use the data to display it to the user
-          .then(weatherForecast => {console.log(weatherForecast)})
-          // TODO display weather forecast
-          // TODO get weather prediction
+          .then(weatherForecast => {
+            weatherForecast = Object.values(weatherForecast)[0]
+
+            document.getElementById('weatherForecast').innerHTML += "<h3>Weather Forecast</h3>";
+
+            // Add weather icon
+            const weatherIcon = document.createElement('img');
+            weatherIcon.src = "http://openweathermap.org/img/wn/" + weatherForecast.icon + "@2x.png";
+            document.getElementById('weatherForecast').appendChild(weatherIcon);
+
+            const weatherText = "<ul>" +
+              "<li>" + weatherForecast['main weather'] + "</li>" +
+              "<li>Temperature: " + weatherForecast.temperature + "°</li>" +
+              "<li>Rain: " + weatherForecast.rain + "mm</li>" +
+              "</ul>";
+
+            document.getElementById('weatherForecast').innerHTML += weatherText;
+
+            // TODO get weather prediction
+          })
         };
 
     </script>
@@ -217,7 +234,6 @@
           <div id='submitTripPlan'></div>
         </div>
         <div id='weatherForecast'>
-          <p>Weather Forecast goes here</p>
         </div>
         <div id='stationAvailabilityPrediction'>
           <p>Availability Prediction goes here</p>
