@@ -79,8 +79,8 @@
           // calculate next 47 hours (because not including current hour) since our chosen API returns a forecast for the next 48hours 
           for (i = 0; i < 47; i++){
             let nextHourDate = new Date(currentDate.setHours(currentDate.getHours() + 1));
-            let dayString = nextHourDate.toString().split(' ').slice(0, 4).join(' ');
-            let timeString = nextHourDate.toString().split(' ').slice(4, 5).join(' ');
+            let dayString = nextHourDate.toDateString();
+            let timeString = nextHourDate.toLocaleTimeString();
             // getTime always return timestamp in UTC while Date is according to browser timezone (openweather api is also using UTC for timestamps)
             let unixTimestamp = nextHourDate.getTime()/1000;
             timesMapping[nextHourDate.toString()] = [dayString, timeString, unixTimestamp];
