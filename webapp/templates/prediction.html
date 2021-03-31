@@ -193,12 +193,10 @@
           .then(weatherForecast => {
             weatherForecast = Object.values(weatherForecast)[0]
 
-            document.getElementById('weatherForecast').innerHTML += "<h3>Weather Forecast</h3>";
+            const weatherHeader = "<h3>Weather Forecast</h3>"; 
 
             // Add weather icon
-            const weatherIcon = document.createElement('img');
-            weatherIcon.src = "http://openweathermap.org/img/wn/" + weatherForecast.icon + "@2x.png";
-            document.getElementById('weatherForecast').appendChild(weatherIcon);
+            const weatherIcon = '<img src="http://openweathermap.org/img/wn/' + weatherForecast.icon + '@2x.png">';
 
             const weatherText = "<ul>" +
               "<li>" + weatherForecast['main weather'] + "</li>" +
@@ -206,7 +204,9 @@
               "<li>Rain: " + weatherForecast.rain + "mm</li>" +
               "</ul>";
 
-            document.getElementById('weatherForecast').innerHTML += weatherText;
+            const weatherHTML =  weatherHeader + weatherIcon + weatherText;
+
+            document.getElementById('weatherForecast').innerHTML = weatherHTML;
 
             // TODO get weather prediction
           })
