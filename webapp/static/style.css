@@ -79,3 +79,55 @@ canvas{
   width:800px !important;
   height:400px !important;
 }
+
+#predictionHeader{
+  margin-bottom: 5px;
+}
+
+.content-container{
+  width: 100%;
+  margin: auto;
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+  height: calc(100vh - 100px);
+}
+
+#leftSideColumn{
+  display: flex;
+  flex-flow: column wrap;
+  min-width: 30%;
+  margin: 0 auto;
+}
+#planYourTrip{
+  background: lightgray;
+  border-radius: 20px;
+}
+#planYourTripTitle{
+  text-align: center;
+  margin: 20px;
+  color: white;
+}
+
+#daySelect, #timeSelect, #stationSelected, #submitTripPlan{
+  margin: 10px;
+  text-align: left;
+}
+
+#predictionMap {
+  flex-grow: 2;
+  max-width: 65%;
+} 
+
+.select-station{
+  padding: 5px;
+}
+
+.vertical-line{
+  border-left: 3px solid grey;
+  margin: 0 auto;
+}
+
+#submitTripPlan{
+  display: none;
+}
