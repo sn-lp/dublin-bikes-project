@@ -21,7 +21,7 @@ nav a:hover, .nav-bar a:active {
 /* Always set the map height explicitly to define the size of the div
  * element that contains the map. */
 #map {
-  height: 90%;
+  height: calc(100vh - 210px);
 }
 
 /* Optional: Makes the sample page fill the window. */
@@ -30,20 +30,32 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+}
+.weather-and-view-selection-container{
+  width: 100%;
+  margin: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: row;
+}
+
+#openweather-widget{
+  display: flex;
+  flex-flow: column wrap;
+  align-self: flex-start;
 }
 
 .view-title-div{
-  text-align: right;
-  margin-bottom: 5px;
-  margin-right: 20px;
+  display:flex;
 }
 #viewTitle {
-  margin-top: 0;
+  flex-grow: 1;
 }
 
 .view-selection {
-  text-align: right;
-  margin-bottom: 10px;
+  display:flex;
 }
 
 .select-view-button {
