@@ -9,11 +9,14 @@ def test_home_page():
         assert response.status_code == 200
         assert b"Group 5 Dublin Bikes App" in response.data
 
-def test_stations():
+def test_stations_fields():
     with app.test_client() as test_client:
         response = test_client.get("/stations")
         assert response.status_code == 200
         data = json.loads(response.data)
+
+        # Check that there are the expected number of stations
+        assert len(data) == 110
 
         # Check if there are any fields missing in any of the station data
         for station in data:

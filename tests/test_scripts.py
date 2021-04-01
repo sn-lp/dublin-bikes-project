@@ -5,7 +5,7 @@ import pytest
 devConfig = MainConfig()
 API_KEY = devConfig.JCDECAUX_API_KEY
 
-def test_duplicates(): 
+def test_station_number_unique(): 
     # get all stations in dublin 
     r = requests.get(f"https://api.jcdecaux.com/vls/v1/stations?contract=dublin&apiKey={API_KEY}")
     if r.status_code == requests.codes.ok:

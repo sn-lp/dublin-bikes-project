@@ -7,5 +7,5 @@ if app.config["ENV"] == "backup":
 else:
     app.config.from_object("config.MainConfig")
 
-# TODO: Document why we need this import down here
+# import is down here to avoid circular imports
 from webapp import routes
