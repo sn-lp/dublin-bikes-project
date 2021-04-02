@@ -88,7 +88,6 @@
           return timesMapping;
         };
 
-        
         // get the valid day options to build the dropdown menu
         function getDropdownDaysOptions(){
           dropdownDaysOptions = [];
@@ -191,9 +190,26 @@
           fetch(predictionEndpoint)
           .then(response => response.json())
           // at the moment we are just doing a console.log with what is returned by the backend about the weather forecast but next step is to use the data to display it to the user
-          .then(weatherForecast => {console.log(weatherForecast)})
-          // TODO display weather forecast
-          // TODO get weather prediction
+          .then(weatherForecast => {
+            weatherForecast = Object.values(weatherForecast)[0]
+
+            const weatherHeader = "<h3>Weather Forecast</h3>"; 
+
+            // Add weather icon
+            const weatherIcon = '<img src="http://openweathermap.org/img/wn/' + weatherForecast.icon + '@2x.png">';
+
+            const weatherText = "<ul>" +
+              "<li>" + weatherForecast['main weather'] + "</li>" +
+              "<li>Temperature: " + weatherForecast.temperature + "°</li>" +
+              "<li>Rain: " + weatherForecast.rain + "mm</li>" +
+              "</ul>";
+
+            const weatherHTML =  weatherHeader + weatherIcon + weatherText;
+
+            document.getElementById('weatherForecast').innerHTML = weatherHTML;
+
+            // TODO get weather prediction
+          })
         };
 
     </script>
@@ -222,7 +238,6 @@
           <div id='submitTripPlan'></div>
         </div>
         <div id='weatherForecast'>
-          <p>Weather Forecast goes here</p>
         </div>
         <div id='stationAvailabilityPrediction'>
           <p>Availability Prediction goes here</p>
