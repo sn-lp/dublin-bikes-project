@@ -6,24 +6,18 @@
   let chart;
   let overlay;
 
-  function selectAvailableBikesView() {
-    // if the view is already selected don't do anything
-    if (viewAvailableBikes) {
-      return;
+  function toggleView(){
+    if (viewAvailableBikes){
+        viewAvailableBikes = false;
+        document.getElementById("viewButton").innerHTML = "Show Available Bikes";
     }
-    viewAvailableBikes = true;
-    changeViewTitle();
-    updateMarkers();
-  };
-
-  function selectFreeSpacesView() {
-    if (!viewAvailableBikes){
-      return;
+    else {
+        viewAvailableBikes = true;
+        document.getElementById("viewButton").innerHTML = "Show Free Spaces";
     }
-    viewAvailableBikes = false;
-    changeViewTitle();
     updateMarkers();
-  };
+    changeViewTitle();
+  }
 
   function initMap() {
     changeViewTitle();
