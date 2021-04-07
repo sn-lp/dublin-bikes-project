@@ -21,6 +21,7 @@
         let currentStationLong;
         let timeSelected;
         let daySelected;
+        let currentStationNumber;
 
         function initMap() {
           let map = new google.maps.Map(document.getElementById("predictionMap"), {
@@ -50,12 +51,11 @@
                           position: {'lat': station.latitude, 'lng': station.longitude},
                           icon: "/static/blue-dot.png"
                       });
-
                       let stationName = station.name.replaceAll("'", " ");
                       // Information displayed in info window
                       const contentString = 
                       station.name +
-                      "<div class='select-station'><button id='stationSelectButton' onclick='handleSelectedStation(\"" + stationName + '\",' + station.latitude + ',' + station.longitude + ")'>Select this station</button></div>";
+                      "<div class='select-station'><button id='stationSelectButton' onclick='handleSelectedStation(\"" + stationName + '\",' + station.latitude + ',' + station.longitude + ',' + station.stationId + ")'>Select this station</button></div>";
                       marker.addListener("click", () => {
                           clickedMarker = marker;
                           // Close any open info window
@@ -153,7 +153,7 @@
         }
 
         // change marker colour when station selected and display the selected station name
-        function handleSelectedStation(stationName, stationLat, stationLong){
+        function handleSelectedStation(stationName, stationLat, stationLong, stationNumber){
           // if the user selects another station, change the previous marker colour back to blue
           if(selectedMarkerGreen !== undefined) {
             selectedMarkerGreen.setIcon('/static/blue-dot.png');
@@ -165,6 +165,7 @@
           document.getElementById("stationSelected").innerHTML = stationConfirmation;
           currentStationLat = stationLat;
           currentStationLong = stationLong;
+          currentStationNumber = stationNumber;
           isStationChosen = true;
           tryDisplaySubmitButton();
         };
@@ -172,13 +173,13 @@
         // try display the submit button after the day, time and station were selected
         function tryDisplaySubmitButton(){
           if(isStationChosen && isTimeChosen) {
-            document.getElementById("submitTripPlan").innerHTML = "<button id='submitButton' onclick='getForecastAndPrediction(" + currentStationLat + "," + currentStationLong + ",\"" + daySelected + "\"" + ",\"" + timeSelected + "\"" + ")'>Submit</button>";
+            document.getElementById("submitTripPlan").innerHTML = "<button id='submitButton' onclick='getForecastAndPrediction(" + currentStationNumber + "," + currentStationLat + "," + currentStationLong + ",\"" + daySelected + "\"" + ",\"" + timeSelected + "\"" + ")'>Submit</button>";
             document.getElementById("submitTripPlan").style.display = "block";
           }
         };
 
         // get weather forecast and prediction
-        function getForecastAndPrediction(stationLat, stationLong, daySelected, timeSelected){
+        function getForecastAndPrediction(stationNumber, stationLat, stationLong, daySelected, timeSelected){
           let predictionEndpoint;
           let requestedTimestamp;
           for (let i in timesMapping){
@@ -186,13 +187,11 @@
               requestedTimestamp = timesMapping[i][2];
             }
           }
-          predictionEndpoint = '/weather_forecast_and_availability_prediction?stationLat=' + stationLat + '&stationLong=' + stationLong + '&timeRequested=' + requestedTimestamp;
+          predictionEndpoint = '/weather_forecast_and_availability_prediction?stationNumber=' + stationNumber + '&stationLat=' + stationLat + '&stationLong=' + stationLong + '&timeRequested=' + requestedTimestamp;
           fetch(predictionEndpoint)
           .then(response => response.json())
-          // at the moment we are just doing a console.log with what is returned by the backend about the weather forecast but next step is to use the data to display it to the user
           .then(weatherForecast => {
             weatherForecast = Object.values(weatherForecast)[0]
-
             const weatherHeader = "<h3>Weather Forecast</h3>"; 
 
             // Add weather icon
@@ -208,7 +207,7 @@
 
             document.getElementById('weatherForecast').innerHTML = weatherHTML;
 
-            // TODO get weather prediction
+            // TODO display predicted availability
           })
         };
 
