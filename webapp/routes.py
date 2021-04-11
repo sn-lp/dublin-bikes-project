@@ -58,16 +58,30 @@ def close_db_connection(exception):
 @app.route("/stations")
 @lru_cache
 def get_stations():
-    stations = pd.read_sql("SELECT * FROM stations", g._database)
     sql_query_string = """
-    SELECT *
-    FROM station_updates
-    WHERE (stationId, lastUpdate) IN
-        (SELECT stationId, max(lastUpdate) FROM station_updates GROUP BY stationId)
+    SELECT
+        stations.stationId,
+        stations.name,
+        stations.address,
+        stations.latitude,
+        stations.longitude,
+        station_updates.totalStands,
+        station_updates.availableBikes,
+        station_updates.freeStands,
+        station_updates.lastUpdate,
+        station_updates.mainWeather,
+        station_updates.temperature,
+        station_updates.cloudiness,
+        station_updates.windSpeed,
+        station_updates.rain,
+        station_updates.snow
+    FROM stations
+    LEFT JOIN station_updates
+        ON stations.stationId = station_updates.stationId
+    WHERE (station_updates.stationId, station_updates.lastUpdate)
+        IN (SELECT stationId, max(lastUpdate) FROM station_updates GROUP BY stationId);
     """
-    latest_availability = pd.read_sql(sql_query_string, g._database)
-    # Combine with static stations data
-    stations_with_availability = stations.merge(latest_availability, on="stationId", how='inner')
+    stations_with_availability = pd.read_sql(sql_query_string, g._database)
     return stations_with_availability.to_json(orient="records")
 
 @app.route("/availability_history")
