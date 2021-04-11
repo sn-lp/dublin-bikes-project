@@ -163,8 +163,8 @@ def get_weather_forecast_and_prediction_for_station():
                                     'weekday_Wednesday', 'mainWeather_Clouds', 'mainWeather_Drizzle', 'mainWeather_Fog',
                                     'mainWeather_Mist', 'mainWeather_Rain', 'mainWeather_Snow']
                     
-                    # initialise a dict with the features as keys and None as values
-                    features_and_values_dict = dict.fromkeys(features)
+                    # initialise a dict with the features as keys and 0 as values
+                    features_and_values_dict = dict.fromkeys(features, 0)
                     # give the corresponding keys the user input and weather forecast as values
                     # weekday_Friday and mainWeather_Clear were dropped during ML model training by encoding with dummies and dropping one of the resulting features
                     features_and_values_dict['temperature'] = temperature
@@ -178,10 +178,6 @@ def get_weather_forecast_and_prediction_for_station():
                         features_and_values_dict[f'weekday_{day_of_the_week_string}'] = 1
                     if main_weather != 'Clear':
                         features_and_values_dict[f'mainWeather_{main_weather}'] = 1
-                    # give the other features 0 as value
-                    for k,v in features_and_values_dict.items():
-                        if features_and_values_dict[k] == None:
-                            features_and_values_dict[k] = 0
                     
                     # turns lists of mappings (dict-like objects) of feature names to feature values into Numpy arrays
                     v = DictVectorizer(sparse=False, sort=False)
