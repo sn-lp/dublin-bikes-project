@@ -59,9 +59,13 @@ def close_db_connection(exception):
 @lru_cache
 def get_stations():
     stations = pd.read_sql("SELECT * FROM stations", g._database)
-    availability = pd.read_sql("SELECT * FROM station_updates", g._database)
-    # Get the latest availability update for each station
-    latest_availability = availability.sort_values("lastUpdate").groupby("stationId").tail(1)
+    sql_query_string = """
+    SELECT *
+    FROM station_updates
+    WHERE (stationId, lastUpdate) IN
+        (SELECT stationId, max(lastUpdate) FROM station_updates GROUP BY stationId)
+    """
+    latest_availability = pd.read_sql(sql_query_string, g._database)
     # Combine with static stations data
     stations_with_availability = stations.merge(latest_availability, on="stationId", how='inner')
     return stations_with_availability.to_json(orient="records")
@@ -74,7 +78,6 @@ def get_station_availability_history():
     if not station:
         abort(400)
     return get_station_availability_averages("availableBikes", station)
-
 
 @app.route("/weatherWidget.js")
 def weatherWidget_js():
