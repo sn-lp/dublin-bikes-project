@@ -22,6 +22,7 @@
         let timeSelected;
         let daySelected;
         let currentStationNumber;
+        let currentStationName;
 
         function initMap() {
           let map = new google.maps.Map(document.getElementById("predictionMap"), {
@@ -166,6 +167,7 @@
           currentStationLat = stationLat;
           currentStationLong = stationLong;
           currentStationNumber = stationNumber;
+          currentStationName = stationName;
           isStationChosen = true;
           tryDisplaySubmitButton();
         };
@@ -173,13 +175,13 @@
         // try display the submit button after the day, time and station were selected
         function tryDisplaySubmitButton(){
           if(isStationChosen && isTimeChosen) {
-            document.getElementById("submitTripPlan").innerHTML = "<button id='submitButton' onclick='getForecastAndPrediction(" + currentStationNumber + "," + currentStationLat + "," + currentStationLong + ",\"" + daySelected + "\"" + ",\"" + timeSelected + "\"" + ")'>Submit</button>";
+            document.getElementById("submitTripPlan").innerHTML = "<button id='submitButton' onclick='getForecastAndPrediction(" + currentStationNumber + ",\"" + currentStationName + "\"" + "," + currentStationLat + "," + currentStationLong + ",\"" + daySelected + "\"" + ",\"" + timeSelected + "\"" + ")'>Submit</button>";
             document.getElementById("submitTripPlan").style.display = "block";
           }
         };
 
         // get weather forecast and prediction
-        function getForecastAndPrediction(stationNumber, stationLat, stationLong, daySelected, timeSelected){
+        function getForecastAndPrediction(stationNumber, stationName, stationLat, stationLong, daySelected, timeSelected){
           let predictionEndpoint;
           let requestedTimestamp;
           for (let i in timesMapping){
@@ -190,24 +192,29 @@
           predictionEndpoint = '/weather_forecast_and_availability_prediction?stationNumber=' + stationNumber + '&stationLat=' + stationLat + '&stationLong=' + stationLong + '&timeRequested=' + requestedTimestamp;
           fetch(predictionEndpoint)
           .then(response => response.json())
-          .then(weatherForecast => {
-            weatherForecast = Object.values(weatherForecast)[0]
+          .then(forecastAndPrediction  => {
+            forecastAndPrediction = Object.values(forecastAndPrediction)[0]
+
             const weatherHeader = "<h3>Weather Forecast</h3>"; 
 
             // Add weather icon
-            const weatherIcon = '<img src="http://openweathermap.org/img/wn/' + weatherForecast.icon + '@2x.png">';
+            const weatherIcon = '<img src="http://openweathermap.org/img/wn/' + forecastAndPrediction.icon + '@2x.png">';
 
             const weatherText = "<ul>" +
-              "<li>" + weatherForecast['main weather'] + "</li>" +
-              "<li>Temperature: " + weatherForecast.temperature + "°</li>" +
-              "<li>Rain: " + weatherForecast.rain + "mm</li>" +
+              "<li>" + forecastAndPrediction['main weather'] + "</li>" +
+              "<li>Temperature: " + forecastAndPrediction.temperature + "°</li>" +
+              "<li>Rain: " + forecastAndPrediction.rain + "mm</li>" +
               "</ul>";
 
             const weatherHTML =  weatherHeader + weatherIcon + weatherText;
-
             document.getElementById('weatherForecast').innerHTML = weatherHTML;
 
-            // TODO display predicted availability
+            const predictionHeader = "<h3>Predicted Bike Availability</h3>";
+            const predictionString = forecastAndPrediction.availability_prediction + " bikes expected to be available at " + stationName + " at " + timeSelected + " on " + daySelected;
+
+            const predictionHTML = predictionHeader + predictionString;
+            document.getElementById('stationAvailabilityPrediction').innerHTML = predictionHTML;
+
           })
         };
 
@@ -239,7 +246,6 @@
         <div id='weatherForecast'>
         </div>
         <div id='stationAvailabilityPrediction'>
-          <p>Availability Prediction goes here</p>
         </div>
       </div>
       <div class='vertical-line'></div>
