@@ -82,6 +82,7 @@ def create_station_row_in_db(station):
         session.commit()
         logging.info("Success: new station added to STATIONS table")
     except SQLAlchemyError as e:
+        session.rollback()
         logging.error(f"Failed to add station {new_station.__dict__} to the STATIONS table with error: {e}")    
 
 def create_station_update_row_in_db(station, weather_data, last_update_datetime):
@@ -114,6 +115,7 @@ def create_station_update_row_in_db(station, weather_data, last_update_datetime)
         session.commit()
         logging.info("Success: new station update added to STATION_UPDATES table")
     except SQLAlchemyError as e:
+        session.rollback()
         logging.error(f"Failed to add update for station {new_station_update.__dict__} to the STATION_UPDATES table with error: {e}")
 
 while True:
