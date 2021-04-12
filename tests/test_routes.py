@@ -24,8 +24,6 @@ def test_stations_fields():
             assert "name" in station
             assert "latitude" in station
             assert "longitude" in station
-            assert "banking" in station
-            assert "isOpen" in station
             assert "totalStands" in station
             assert "availableBikes" in station
             assert "freeStands" in station
