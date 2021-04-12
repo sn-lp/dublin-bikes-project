@@ -12,7 +12,7 @@ from datetime import datetime
 import calendar
 import math
 import pickle
-# from sklearn import the chosen type of model
+from sklearn.feature_extraction import DictVectorizer
 
 DB_USER = app.config["DB_USER"]
 DB_PASSWORD = app.config["DB_PASSWORD"]
@@ -168,21 +168,44 @@ def get_weather_forecast_and_prediction_for_station():
                     else:
                         snow = hourly_weather_forecast["hourly"][i]["snow"]["1h"]
                     
-                    # TODO load pickle file for corresponding station with the model object
-                    # station_model = pickle.load( open(f"station_model_{stationNumber}", "rb"))
+                    # load pickle file for corresponding station which has the ML model learned for the station
+                    station_model_unpickled = pickle.load( open(f"./station_models/randomForest_stationID_{station_number}", "rb"))
+                    # station_model_obj is a tuple with (stationId, model)
+                    station_model = station_model_unpickled[1]
                     
-                    # TODO shape user and weather data to pass as argument to the predict method
-                    # might need to use this https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.DictVectorizer.html
-                    # user_features_and_values = {f'temperature': temperature, 'cloudiness': cloudiness, 'windSpeed': wind_speed,
-                                                #    'rain': rain, 'snow': snow, 'hour_sin': hour_sin, 'hour_cos': hour_cos,
-                                                #    'weekday_{day_of_the_week_string}': 1, 'mainWeather_{main_weather}': 1}
+                    # shape user and weather data to pass as argument to the predict method
+                    # build a dictionary with the features used to train the model as keys and assign the values from user input and weather forecast above
+                    features = ['temperature', 'cloudiness', 'windSpeed', 'rain', 'snow', 'hour_sin', 'hour_cos',
+                                    'weekday_Monday', 'weekday_Saturday', 'weekday_Sunday', 'weekday_Thursday', 'weekday_Tuesday',
+                                    'weekday_Wednesday', 'mainWeather_Clouds', 'mainWeather_Drizzle', 'mainWeather_Fog',
+                                    'mainWeather_Mist', 'mainWeather_Rain', 'mainWeather_Snow']
+                    
+                    # initialise a dict with the features as keys and 0 as values
+                    features_and_values_dict = dict.fromkeys(features, 0)
+                    # give the corresponding keys the user input and weather forecast as values
+                    # weekday_Friday and mainWeather_Clear were dropped during ML model training by encoding with dummies and dropping one of the resulting features
+                    features_and_values_dict['temperature'] = temperature
+                    features_and_values_dict['cloudiness'] = cloudiness
+                    features_and_values_dict['windSpeed'] = wind_speed
+                    features_and_values_dict['rain'] = rain
+                    features_and_values_dict['snow'] = snow
+                    features_and_values_dict['hour_sin'] = hour_sin
+                    features_and_values_dict['hour_cos'] = hour_cos
+                    if day_of_the_week_string != 'Friday':
+                        features_and_values_dict[f'weekday_{day_of_the_week_string}'] = 1
+                    if main_weather != 'Clear':
+                        features_and_values_dict[f'mainWeather_{main_weather}'] = 1
+                    
+                    # turns lists of mappings (dict-like objects) of feature names to feature values into Numpy arrays
+                    v = DictVectorizer(sparse=False, sort=False)
+                    new_sample_to_make_prediction = v.fit_transform(features_and_values_dict)
 
-                    # TODO predict availability for user input and weather forecast
-                    # availability_prediction = station_model.predict(user_features_and_values)
+                    # predict availability for user input and weather forecast
+                    availability_prediction_result = station_model.predict(new_sample_to_make_prediction)
+                    availability_prediction = int(availability_prediction_result[0])
 
-                    # for now return the weather forecast conditions to the frontend as a dictionary
-                    # later add the predicted availability to the dict
-                    return {time_requested_unix_timestamp:{"main weather":main_weather, "temperature":temperature, "cloudiness": cloudiness, "wind speed": wind_speed, "rain": rain, "snow": snow, "icon": weather_icon}}
+                    # return the weather forecast conditions and availability prediction to the frontend as a dictionary
+                    return {time_requested_unix_timestamp:{"main weather":main_weather, "temperature":temperature, "cloudiness": cloudiness, "wind speed": wind_speed, "rain": rain, "snow": snow, "icon": weather_icon, "availability_prediction": availability_prediction}}
             return {"error": f"time requested didn't match available data: {hourly_weather_forecast['hourly']}"}    
     else:
         logging.error(f"Request to Openweather Forecast API failed with {weather_forecast_api_response.status_code}: {weather_forecast_api_response.reason}")
