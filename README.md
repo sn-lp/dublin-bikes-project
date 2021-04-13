@@ -18,8 +18,8 @@ The app also has an implementation of Machine Learning techniques to train a mod
 ## Unit Tests
 
 The tests folder contains python unit tests.
-To execute all the tests run the following command: `python3 -m unittest`
-To execute only one specific test: `python3 -m unittest tests.'file_name'.'method_name'`
+To execute all the tests run the following command: `python3 -m pytest`
+To execute only one specific test: `python3 -m pytest tests.'file_name'.'method_name'`
 
 
 ## Config File
