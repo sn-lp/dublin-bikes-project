@@ -130,7 +130,7 @@ To run `prettier`:
 - Run `prettier --write .` on the project folder
 
 We use `black` to lint backend code (Python) and it is in `requirements.txt`
-Tu run `black`:
+To run `black`:
 
 - Run `black .`
 
