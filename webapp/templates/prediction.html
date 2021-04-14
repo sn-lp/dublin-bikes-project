@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>Dublin Bikes App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
     <script>
@@ -201,16 +202,16 @@
 
             const weatherHeader = "<h3>Weather Forecast</h3>"; 
 
-            // Add weather icon
-            const weatherIcon = '<img src="http://openweathermap.org/img/wn/' + forecastAndPrediction.icon + '@2x.png">';
-
-            const weatherText = "<ul>" +
+            const weatherText = "<div id='weatherForecastIconTextContainer'><ul>" +
               "<li>" + forecastAndPrediction['main weather'] + "</li>" +
               "<li>Temperature: " + forecastAndPrediction.temperature + "°</li>" +
               "<li>Rain: " + forecastAndPrediction.rain + "mm</li>" +
               "</ul>";
 
-            const weatherHTML =  weatherHeader + weatherIcon + weatherText;
+              // Add weather icon
+            const weatherIcon = '<img src="http://openweathermap.org/img/wn/' + forecastAndPrediction.icon + '@2x.png">';
+
+            const weatherHTML =  weatherHeader + weatherText + weatherIcon;
             document.getElementById('weatherForecast').innerHTML = weatherHTML;
 
             const predictionHeader = "<h3>Predicted Bike Availability</h3>";
@@ -247,12 +248,12 @@
           <div id='timeSelect'></div>
           <div id='submitTripPlan'></div>
         </div>
-        <div id='weatherForecast'>
-        </div>
-        <div id='stationAvailabilityPrediction'>
+        <div id='predictionContainer'>
+          <div id='weatherForecast'></div>
+          <div id='stationAvailabilityPrediction'></div>
         </div>
       </div>
-      <div class='vertical-line'></div>
+      <div class='line'></div>
       <div id="predictionMap"></div>
     </div>
 
