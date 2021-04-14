@@ -2,12 +2,21 @@
 <html>
   <head>
     <title>Dublin Bikes App</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
+    />
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
-    <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='displayChart.js') }}"></script>
+    <script
+      type="text/javascript"
+      src="{{ url_for('static', filename='main.js') }}"
+    ></script>
+    <script
+      type="text/javascript"
+      src="{{ url_for('static', filename='displayChart.js') }}"
+    ></script>
     <script src="/weatherWidget.js"></script>
   </head>
   <body>
@@ -18,13 +27,19 @@
         <a href="/predictions">Plan a Journey</a>
       </nav>
     </header>
-    <div class='weather-and-view-selection-container'>
+    <div class="weather-and-view-selection-container">
       <div id="openweather-widget"></div>
       <div class="view-title-div">
         <h3 id="viewTitle"></h3>
       </div>
       <div class="view-selection">
-        <button class="select-view-button" id="viewButton" onclick="toggleView()">Show Free Spaces</button>
+        <button
+          class="select-view-button"
+          id="viewButton"
+          onclick="toggleView()"
+        >
+          Show Free Spaces
+        </button>
       </div>
     </div>
     <div id="map"></div>
@@ -32,7 +47,7 @@
       <span class="close">&times;</span>
       <canvas class="modal-content" id="trendChart"></canvas>
     </div>
-    
+
     <!-- Async script executes immediately and must be after any DOM elements used in callback. -->
     <script
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrzloaJPiuP3QvxoeLVdLyWZsh7oTAXm4&callback=initMap&libraries=&v=weekly"
@@ -41,25 +56,25 @@
     <script>
       // Get the modal
       let modal = document.getElementById("myModal");
-      
+
       // Get the <span> element that closes the modal
       let span = document.getElementsByClassName("close")[0];
 
       // When the user clicks on <span> (x), close the modal (the chart)
-      span.onclick = function() {
+      span.onclick = function () {
         modal.style.display = "none";
         // delete chart before creating a new chart in the canvas
         chart.destroy();
-      }
+      };
 
       // When the user clicks anywhere outside of the modal (grey area in the background), also close the chart
-      window.onclick = function(event) {
+      window.onclick = function (event) {
         if (event.target == modal) {
           modal.style.display = "none";
           // delete chart before creating a new chart in the canvas
           chart.destroy();
         }
-      }
+      };
     </script>
   </body>
 </html>

@@ -2,231 +2,314 @@
 <html>
   <head>
     <title>Dublin Bikes App</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
+    />
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
     <script>
-        // flags to trigger the display of the submit button when both are true
-        let isStationChosen = false;
-        let isTimeChosen = false;
+      // flags to trigger the display of the submit button when both are true
+      let isStationChosen = false;
+      let isTimeChosen = false;
 
-        // these variables are used by different independent functions
-        let timesMapping;
-        let dropdownDaysOptions;
-        let hoursForEachOptionDay = {};
+      // these variables are used by different independent functions
+      let timesMapping;
+      let dropdownDaysOptions;
+      let hoursForEachOptionDay = {};
 
-        // we need to keep track of this since the user might change the selected station/day/time before submiting
-        let clickedMarker;
-        let selectedMarkerGreen;
-        let currentStationLat;
-        let currentStationLong;
-        let timeSelected;
-        let daySelected;
-        let currentStationNumber;
-        let currentStationName;
+      // we need to keep track of this since the user might change the selected station/day/time before submiting
+      let clickedMarker;
+      let selectedMarkerGreen;
+      let currentStationLat;
+      let currentStationLong;
+      let timeSelected;
+      let daySelected;
+      let currentStationNumber;
+      let currentStationName;
 
-        function initMap() {
-          let map = new google.maps.Map(document.getElementById("predictionMap"), {
+      function initMap() {
+        let map = new google.maps.Map(
+          document.getElementById("predictionMap"),
+          {
             center: { lat: 53.3498, lng: -6.2603 },
             zoom: 13,
+          }
+        );
+        createMarkers(map);
+      }
+
+      // calculate the current date and next 47 hours, get the valid day options and display the form for day selection when page loads
+      window.onload = function () {
+        timesMapping = getNext47HoursAndTimestamps();
+        dropdownDaysOptions = getDropdownDaysOptions();
+        hoursForEachOptionDay = getDropdownHourOptions();
+        displayUserInputForm();
+      };
+
+      // display the markers for each station in the map
+      function createMarkers(map) {
+        const infowindow = new google.maps.InfoWindow();
+        fetch("/stations")
+          .then((response) => response.json())
+          .then((stationData) => {
+            // Remove station 507 (Oriel Street Test Terminal) since we have no prediction model for it
+            const filteredStationData = stationData.filter(
+              (station) => station.stationId != 507
+            );
+
+            for (const station of filteredStationData) {
+              const marker = new google.maps.Marker({
+                map: map,
+                position: { lat: station.latitude, lng: station.longitude },
+                icon: "/static/blue-dot.png",
+              });
+              let stationName = station.name.replaceAll("'", " ");
+              // Information displayed in info window
+              const contentString =
+                station.name +
+                "<div class='select-station'><button id='stationSelectButton' onclick='handleSelectedStation(\"" +
+                stationName +
+                '",' +
+                station.latitude +
+                "," +
+                station.longitude +
+                "," +
+                station.stationId +
+                ")'>Select this station</button></div>";
+              marker.addListener("click", () => {
+                clickedMarker = marker;
+                // Close any open info window
+                if (infowindow) infowindow.close();
+                infowindow.setContent(contentString);
+                infowindow.open(map, marker);
+              });
+            }
           });
-          createMarkers(map);
-        };
+      }
 
-        // calculate the current date and next 47 hours, get the valid day options and display the form for day selection when page loads
-        window.onload = function() {
-          timesMapping = getNext47HoursAndTimestamps();
-          dropdownDaysOptions = getDropdownDaysOptions();
-          hoursForEachOptionDay = getDropdownHourOptions();
-          displayUserInputForm();
-        };
-
-        // display the markers for each station in the map
-        function createMarkers(map){
-          const infowindow = new google.maps.InfoWindow();
-          fetch('/stations')
-              .then(response => response.json())
-              .then(stationData =>  {
-
-                  // Remove station 507 (Oriel Street Test Terminal) since we have no prediction model for it
-                  const filteredStationData = stationData.filter(station => station.stationId != 507);
-
-                  for (const station of filteredStationData) {
-                      const marker = new google.maps.Marker({
-                          map: map,
-                          position: {'lat': station.latitude, 'lng': station.longitude},
-                          icon: "/static/blue-dot.png"
-                      });
-                      let stationName = station.name.replaceAll("'", " ");
-                      // Information displayed in info window
-                      const contentString = 
-                      station.name +
-                      "<div class='select-station'><button id='stationSelectButton' onclick='handleSelectedStation(\"" + stationName + '\",' + station.latitude + ',' + station.longitude + ',' + station.stationId + ")'>Select this station</button></div>";
-                      marker.addListener("click", () => {
-                          clickedMarker = marker;
-                          // Close any open info window
-                          if (infowindow) infowindow.close();
-                          infowindow.setContent(contentString);
-                          infowindow.open(map, marker);
-                      });
-
-                  }
-              })
-        };
-
-        // get valid hour options to show the user according to hourly forecast returned by the chose weather api
-        function getNext47HoursAndTimestamps(){
-          // get current day and set minutes, seconds and ms to 0 since our chosen api returns hourly forecast 
-          let currentDate = new Date();
-          currentDate.setMinutes(0);
-          currentDate.setSeconds(0);
-          currentDate.setMilliseconds(0);
-          timesMapping = {};
-          // calculate next 47 hours (because not including current hour) since our chosen API returns a forecast for the next 48hours 
-          for (i = 0; i < 47; i++){
-            let nextHourDate = new Date(currentDate.setHours(currentDate.getHours() + 1));
-            let dayString = nextHourDate.toDateString();
-            let timeString = nextHourDate.toLocaleTimeString();
-            // getTime always return timestamp in UTC while Date is according to browser timezone (openweather api is also using UTC for timestamps)
-            let unixTimestamp = nextHourDate.getTime()/1000;
-            timesMapping[nextHourDate.toString()] = [dayString, timeString, unixTimestamp];
-          }
-          return timesMapping;
-        };
-
-        // get the valid day options to build the dropdown menu
-        function getDropdownDaysOptions(){
-          dropdownDaysOptions = [];
-          for (let key in timesMapping){
-            if (!dropdownDaysOptions.includes(timesMapping[key][0])){
-              dropdownDaysOptions.push(timesMapping[key][0]);
-            }
-          }
-          return dropdownDaysOptions;
-        };
-
-        // get the valid hour options to build the time dropdown menu according to the day chosen by the user
-        function getDropdownHourOptions(){
-          for (let i in dropdownDaysOptions){
-            hoursForEachOptionDay[dropdownDaysOptions[i]] = [];
-            for (let key in timesMapping){
-              if (timesMapping[key][0] == dropdownDaysOptions[i]){
-                hoursForEachOptionDay[dropdownDaysOptions[i]].push(timesMapping[key][1]);
-              }
-            }
-          }
-          return hoursForEachOptionDay;
-        };
-        
-        // create and display dropdown to choose day
-        function displayUserInputForm(){
-          let dayForm = "<form>" + 
-                "<label for='day'>Choose a day</label>" +
-                "<select id='day' name='day' onchange='handleDayOptionChange(this)'>" +
-                "<option value='' disabled selected></option>";
-          for (let day in dropdownDaysOptions){
-            dayForm += "<option value=" + i + ">" + dropdownDaysOptions[day] + "</option>";
-          }
-          dayForm += "</select></form>";
-          document.getElementById("daySelect").innerHTML = dayForm;
-        };
-
-        // create and display time dropdown menu with valid times according to day chosen
-        function handleDayOptionChange(selection){
-          daySelected = selection.options[selection.selectedIndex].text;
-          let hours;
-          for (let key in hoursForEachOptionDay){
-            if(key == daySelected){
-              hours = hoursForEachOptionDay[key];
-            }
-          }
-          let timeForm = "<form>" + 
-                "<label for='time'>Choose a time</label>" +
-                "<select id='time' name='time' onchange='handleTimeOptionChange(this)'>" +
-                "<option value='' disabled selected></option>";
-          for (let i in hours){
-            timeForm += "<option value=" + i + ">" + hours[i] + "</option>";
-          }
-          timeForm += "</select></form>";
-          document.getElementById("timeSelect").innerHTML = timeForm;
-        };
-        
-        // store the time selected by the user 
-        function handleTimeOptionChange(selection){
-          timeSelected = selection.options[selection.selectedIndex].text;
-          isTimeChosen = true;
-          tryDisplaySubmitButton();
+      // get valid hour options to show the user according to hourly forecast returned by the chose weather api
+      function getNext47HoursAndTimestamps() {
+        // get current day and set minutes, seconds and ms to 0 since our chosen api returns hourly forecast
+        let currentDate = new Date();
+        currentDate.setMinutes(0);
+        currentDate.setSeconds(0);
+        currentDate.setMilliseconds(0);
+        timesMapping = {};
+        // calculate next 47 hours (because not including current hour) since our chosen API returns a forecast for the next 48hours
+        for (i = 0; i < 47; i++) {
+          let nextHourDate = new Date(
+            currentDate.setHours(currentDate.getHours() + 1)
+          );
+          let dayString = nextHourDate.toDateString();
+          let timeString = nextHourDate.toLocaleTimeString();
+          // getTime always return timestamp in UTC while Date is according to browser timezone (openweather api is also using UTC for timestamps)
+          let unixTimestamp = nextHourDate.getTime() / 1000;
+          timesMapping[nextHourDate.toString()] = [
+            dayString,
+            timeString,
+            unixTimestamp,
+          ];
         }
+        return timesMapping;
+      }
 
-        // change marker colour when station selected and display the selected station name
-        function handleSelectedStation(stationName, stationLat, stationLong, stationNumber){
-          // if the user selects another station, change the previous marker colour back to blue
-          if(selectedMarkerGreen !== undefined) {
-            selectedMarkerGreen.setIcon('/static/blue-dot.png');
+      // get the valid day options to build the dropdown menu
+      function getDropdownDaysOptions() {
+        dropdownDaysOptions = [];
+        for (let key in timesMapping) {
+          if (!dropdownDaysOptions.includes(timesMapping[key][0])) {
+            dropdownDaysOptions.push(timesMapping[key][0]);
           }
-          let stationConfirmation = "<p>Station Selected: " + stationName + "</p>";
-          // if a station is selected change the marker colour to green
-          clickedMarker.setIcon('/static/green-dot.png');
-          selectedMarkerGreen = clickedMarker;
-          document.getElementById("stationSelected").innerHTML = stationConfirmation;
-          currentStationLat = stationLat;
-          currentStationLong = stationLong;
-          currentStationNumber = stationNumber;
-          currentStationName = stationName;
-          isStationChosen = true;
-          tryDisplaySubmitButton();
-        };
+        }
+        return dropdownDaysOptions;
+      }
 
-        // try display the submit button after the day, time and station were selected
-        function tryDisplaySubmitButton(){
-          if(isStationChosen && isTimeChosen) {
-            document.getElementById("submitTripPlan").innerHTML = "<button id='submitButton' onclick='getForecastAndPrediction(" + currentStationNumber + ",\"" + currentStationName + "\"" + "," + currentStationLat + "," + currentStationLong + ",\"" + daySelected + "\"" + ",\"" + timeSelected + "\"" + ")'>Submit</button>";
-            document.getElementById("submitTripPlan").style.display = "block";
-          }
-        };
-
-        // get weather forecast and prediction
-        function getForecastAndPrediction(stationNumber, stationName, stationLat, stationLong, daySelected, timeSelected){
-          let predictionEndpoint;
-          let requestedTimestamp;
-          for (let i in timesMapping){
-            if (timesMapping[i][0] == daySelected && timesMapping[i][1] == timeSelected){
-              requestedTimestamp = timesMapping[i][2];
+      // get the valid hour options to build the time dropdown menu according to the day chosen by the user
+      function getDropdownHourOptions() {
+        for (let i in dropdownDaysOptions) {
+          hoursForEachOptionDay[dropdownDaysOptions[i]] = [];
+          for (let key in timesMapping) {
+            if (timesMapping[key][0] == dropdownDaysOptions[i]) {
+              hoursForEachOptionDay[dropdownDaysOptions[i]].push(
+                timesMapping[key][1]
+              );
             }
           }
-          predictionEndpoint = '/weather_forecast_and_availability_prediction?stationNumber=' + stationNumber + '&stationLat=' + stationLat + '&stationLong=' + stationLong + '&timeRequested=' + requestedTimestamp;
-          fetch(predictionEndpoint)
-          .then(response => response.json())
-          .then(forecastAndPrediction  => {
-            forecastAndPrediction = Object.values(forecastAndPrediction)[0]
+        }
+        return hoursForEachOptionDay;
+      }
 
-            const weatherHeader = "<h3>Weather Forecast</h3>"; 
+      // create and display dropdown to choose day
+      function displayUserInputForm() {
+        let dayForm =
+          "<form>" +
+          "<label for='day'>Choose a day</label>" +
+          "<select id='day' name='day' onchange='handleDayOptionChange(this)'>" +
+          "<option value='' disabled selected></option>";
+        for (let day in dropdownDaysOptions) {
+          dayForm +=
+            "<option value=" + i + ">" + dropdownDaysOptions[day] + "</option>";
+        }
+        dayForm += "</select></form>";
+        document.getElementById("daySelect").innerHTML = dayForm;
+      }
 
-            const weatherText = "<div id='weatherForecastIconTextContainer'><ul>" +
-              "<li>" + forecastAndPrediction['main weather'] + "</li>" +
-              "<li>Temperature: " + forecastAndPrediction.temperature + "°</li>" +
-              "<li>Rain: " + forecastAndPrediction.rain + "mm</li>" +
+      // create and display time dropdown menu with valid times according to day chosen
+      function handleDayOptionChange(selection) {
+        daySelected = selection.options[selection.selectedIndex].text;
+        let hours;
+        for (let key in hoursForEachOptionDay) {
+          if (key == daySelected) {
+            hours = hoursForEachOptionDay[key];
+          }
+        }
+        let timeForm =
+          "<form>" +
+          "<label for='time'>Choose a time</label>" +
+          "<select id='time' name='time' onchange='handleTimeOptionChange(this)'>" +
+          "<option value='' disabled selected></option>";
+        for (let i in hours) {
+          timeForm += "<option value=" + i + ">" + hours[i] + "</option>";
+        }
+        timeForm += "</select></form>";
+        document.getElementById("timeSelect").innerHTML = timeForm;
+      }
+
+      // store the time selected by the user
+      function handleTimeOptionChange(selection) {
+        timeSelected = selection.options[selection.selectedIndex].text;
+        isTimeChosen = true;
+        tryDisplaySubmitButton();
+      }
+
+      // change marker colour when station selected and display the selected station name
+      function handleSelectedStation(
+        stationName,
+        stationLat,
+        stationLong,
+        stationNumber
+      ) {
+        // if the user selects another station, change the previous marker colour back to blue
+        if (selectedMarkerGreen !== undefined) {
+          selectedMarkerGreen.setIcon("/static/blue-dot.png");
+        }
+        let stationConfirmation =
+          "<p>Station Selected: " + stationName + "</p>";
+        // if a station is selected change the marker colour to green
+        clickedMarker.setIcon("/static/green-dot.png");
+        selectedMarkerGreen = clickedMarker;
+        document.getElementById(
+          "stationSelected"
+        ).innerHTML = stationConfirmation;
+        currentStationLat = stationLat;
+        currentStationLong = stationLong;
+        currentStationNumber = stationNumber;
+        currentStationName = stationName;
+        isStationChosen = true;
+        tryDisplaySubmitButton();
+      }
+
+      // try display the submit button after the day, time and station were selected
+      function tryDisplaySubmitButton() {
+        if (isStationChosen && isTimeChosen) {
+          document.getElementById("submitTripPlan").innerHTML =
+            "<button id='submitButton' onclick='getForecastAndPrediction(" +
+            currentStationNumber +
+            ',"' +
+            currentStationName +
+            '"' +
+            "," +
+            currentStationLat +
+            "," +
+            currentStationLong +
+            ',"' +
+            daySelected +
+            '"' +
+            ',"' +
+            timeSelected +
+            '"' +
+            ")'>Submit</button>";
+          document.getElementById("submitTripPlan").style.display = "block";
+        }
+      }
+
+      // get weather forecast and prediction
+      function getForecastAndPrediction(
+        stationNumber,
+        stationName,
+        stationLat,
+        stationLong,
+        daySelected,
+        timeSelected
+      ) {
+        let predictionEndpoint;
+        let requestedTimestamp;
+        for (let i in timesMapping) {
+          if (
+            timesMapping[i][0] == daySelected &&
+            timesMapping[i][1] == timeSelected
+          ) {
+            requestedTimestamp = timesMapping[i][2];
+          }
+        }
+        predictionEndpoint =
+          "/weather_forecast_and_availability_prediction?stationNumber=" +
+          stationNumber +
+          "&stationLat=" +
+          stationLat +
+          "&stationLong=" +
+          stationLong +
+          "&timeRequested=" +
+          requestedTimestamp;
+        fetch(predictionEndpoint)
+          .then((response) => response.json())
+          .then((forecastAndPrediction) => {
+            forecastAndPrediction = Object.values(forecastAndPrediction)[0];
+
+            const weatherHeader = "<h3>Weather Forecast</h3>";
+
+            const weatherText =
+              "<div id='weatherForecastIconTextContainer'><ul>" +
+              "<li>" +
+              forecastAndPrediction["main weather"] +
+              "</li>" +
+              "<li>Temperature: " +
+              forecastAndPrediction.temperature +
+              "°</li>" +
+              "<li>Rain: " +
+              forecastAndPrediction.rain +
+              "mm</li>" +
               "</ul>";
 
-              // Add weather icon
-            const weatherIcon = '<img src="http://openweathermap.org/img/wn/' + forecastAndPrediction.icon + '@2x.png">';
+            // Add weather icon
+            const weatherIcon =
+              '<img src="http://openweathermap.org/img/wn/' +
+              forecastAndPrediction.icon +
+              '@2x.png">';
 
-            const weatherHTML =  weatherHeader + weatherText + weatherIcon;
-            document.getElementById('weatherForecast').innerHTML = weatherHTML;
+            const weatherHTML = weatherHeader + weatherText + weatherIcon;
+            document.getElementById("weatherForecast").innerHTML = weatherHTML;
 
             const predictionHeader = "<h3>Predicted Bike Availability</h3>";
-            const predictionString = forecastAndPrediction.availability_prediction + " bikes expected to be available at " + stationName + " at " + timeSelected + " on " + daySelected;
+            const predictionString =
+              forecastAndPrediction.availability_prediction +
+              " bikes expected to be available at " +
+              stationName +
+              " at " +
+              timeSelected +
+              " on " +
+              daySelected;
 
             const predictionHTML = predictionHeader + predictionString;
-            document.getElementById('stationAvailabilityPrediction').innerHTML = predictionHTML;
-
-          })
-        };
-
+            document.getElementById(
+              "stationAvailabilityPrediction"
+            ).innerHTML = predictionHTML;
+          });
+      }
     </script>
   </head>
   <body>
-    
     <header>
       <h1>Group 5 Dublin Bikes App</h1>
       <nav>
@@ -234,26 +317,26 @@
         <a href="/predictions">Plan a Journey</a>
       </nav>
     </header>
-    
-    <div class='content-container'>
+
+    <div class="content-container">
       <div id="leftSideColumn">
-        <div id='planYourTrip'>
-          <div id='planYourTripTitle'>
+        <div id="planYourTrip">
+          <div id="planYourTripTitle">
             <h2>Plan your trip</h2>
           </div>
-          <div id='stationSelected'>
+          <div id="stationSelected">
             <p>Select your station in the map</p>
           </div>
-          <div id='daySelect'></div>
-          <div id='timeSelect'></div>
-          <div id='submitTripPlan'></div>
+          <div id="daySelect"></div>
+          <div id="timeSelect"></div>
+          <div id="submitTripPlan"></div>
         </div>
-        <div id='predictionContainer'>
-          <div id='weatherForecast'></div>
-          <div id='stationAvailabilityPrediction'></div>
+        <div id="predictionContainer">
+          <div id="weatherForecast"></div>
+          <div id="stationAvailabilityPrediction"></div>
         </div>
       </div>
-      <div class='line'></div>
+      <div class="line"></div>
       <div id="predictionMap"></div>
     </div>
 
