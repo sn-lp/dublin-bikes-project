@@ -46,7 +46,11 @@
           fetch('/stations')
               .then(response => response.json())
               .then(stationData =>  {
-                  for (const station of stationData) {
+
+                  // Remove station 507 (Oriel Street Test Terminal) since we have no prediction model for it
+                  const filteredStationData = stationData.filter(station => station.stationId != 507);
+
+                  for (const station of filteredStationData) {
                       const marker = new google.maps.Marker({
                           map: map,
                           position: {'lat': station.latitude, 'lng': station.longitude},
