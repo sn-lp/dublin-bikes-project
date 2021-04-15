@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: Lint Python
+name: Lint Frontend Code
 
 # Controls when the action will run.
 on:
@@ -25,12 +25,12 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
+      - name: Set up Node v14
+        uses: actions/setup-node@v2
         with:
-          python-version: 3.8
-      - name: Install Black
-        run: pip install black
+          node-version: "14"
+      - name: Install prettier
+        run: npm install -g prettier
       # --check returns 0 if there's no modifications needed or 1 if there's linting issues
-      - name: Run black --check .
-        run: black --check .
+      - name: Run prettier --check .
+        run: prettier --check .
